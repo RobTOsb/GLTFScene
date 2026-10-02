@@ -9,11 +9,10 @@
 
 namespace Scene
 {
-	bool ReadAccessorAsFloat(Allocator::Arena &arena,
-							 const tg3_model &model,
+	bool ReadAccessorAsFloat(const tg3_model &model,
 							 int32_t accessorIndex,
 							 int32_t expectedNumComponents,
-							 DSA::FixedVector<float> &out)
+							 std::vector<float> &out)
 	{
 		if (accessorIndex < 0 || (uint32_t) accessorIndex >= model.accessors_count)
 			return false;
@@ -37,7 +36,7 @@ namespace Scene
 
 		const uint8_t *base = buf.data.data + bv.byte_offset + acc.byte_offset;
 
-		out = DSA::FixedVector<float>(arena, (size_t) acc.count * numComponents);
+		out = std::vector<float>((size_t) acc.count * numComponents);
 
 		for (uint64_t i = 0; i < acc.count; ++i)
 		{
@@ -69,10 +68,9 @@ namespace Scene
 		return true;
 	}
 
-	bool ReadAccessorAsIndices(Allocator::Arena &arena,
-							   const tg3_model &model,
+	bool ReadAccessorAsIndices(const tg3_model &model,
 							   int32_t accessorIndex,
-							   DSA::FixedVector<uint32_t> &out)
+							   std::vector<uint32_t> &out)
 	{
 		if (accessorIndex < 0 || (uint32_t) accessorIndex >= model.accessors_count)
 			return false;
@@ -94,7 +92,7 @@ namespace Scene
 
 		const uint8_t *base = buf.data.data + bv.byte_offset + acc.byte_offset;
 
-		out = DSA::FixedVector<uint32_t>(arena, (size_t) acc.count);
+		out = std::vector<uint32_t>((size_t) acc.count);
 
 		for (uint64_t i = 0; i < acc.count; ++i)
 		{
@@ -129,7 +127,7 @@ namespace Scene
 		return -1;
 	}
 
-	Primitive::Primitive(Allocator::Arena &arena, const tg3_model &model, const tg3_primitive &prim) :
+	Primitive::Primitive(const tg3_model &model, const tg3_primitive &prim) :
 		materialIndex(prim.material)
 	{
 		// POSITION, NORMAL and TEXCOORD_0 are required; every primitive in
@@ -138,34 +136,34 @@ namespace Scene
 		// from the source -- glTF's tangent data is frequently missing or
 		// low quality, so it's always generated (see GenerateTangents).
 		int32_t posAccessor = FindAttribute(prim, "POSITION");
-		if (!ReadAccessorAsFloat(arena, model, posAccessor, 3, positions))
+		if (!ReadAccessorAsFloat(model, posAccessor, 3, positions))
 		{
 			fprintf(stderr, "Primitive missing/invalid POSITION attribute\n");
 			return;
 		}
 
 		int32_t normalAccessor = FindAttribute(prim, "NORMAL");
-		if (!ReadAccessorAsFloat(arena, model, normalAccessor, 3, normals))
+		if (!ReadAccessorAsFloat(model, normalAccessor, 3, normals))
 		{
 			fprintf(stderr, "Primitive missing/invalid NORMAL attribute\n");
 			return;
 		}
 
 		int32_t uvAccessor = FindAttribute(prim, "TEXCOORD_0");
-		if (!ReadAccessorAsFloat(arena, model, uvAccessor, 2, texCoord0))
+		if (!ReadAccessorAsFloat(model, uvAccessor, 2, texCoord0))
 		{
 			fprintf(stderr, "Primitive missing/invalid TEXCOORD_0 attribute\n");
 			return;
 		}
 
 		if (prim.indices >= 0)
-			ReadAccessorAsIndices(arena, model, prim.indices, indices);
+			ReadAccessorAsIndices(model, prim.indices, indices);
 
-		GenerateTangents(arena);
-		BuildMeshlets(arena);
+		GenerateTangents();
+		BuildMeshlets();
 	}
 
-	void Primitive::GenerateTangents(Allocator::Arena &arena)
+	void Primitive::GenerateTangents()
 	{
 		if (indices.empty())
 			return;
@@ -176,9 +174,9 @@ namespace Scene
 		// meshopt_generateTangents' output is per-corner regardless of
 		// whether its input is indexed, so building the remap input this
 		// way lets each corner carry its own tangent independently.
-		DSA::FixedVector<float> cornerPositions(arena, cornerCount * 3);
-		DSA::FixedVector<float> cornerNormals(arena, cornerCount * 3);
-		DSA::FixedVector<float> cornerUVs(arena, cornerCount * 2);
+		std::vector<float> cornerPositions(cornerCount * 3);
+		std::vector<float> cornerNormals(cornerCount * 3);
+		std::vector<float> cornerUVs(cornerCount * 2);
 
 		for (size_t i = 0; i < cornerCount; ++i)
 		{
@@ -196,7 +194,7 @@ namespace Scene
 			cornerUVs[i * 2 + 1] = texCoord0[v * 2 + 1];
 		}
 
-		DSA::FixedVector<float> cornerTangents(arena, cornerCount * 4);
+		std::vector<float> cornerTangents(cornerCount * 4);
 		meshopt_generateTangents(cornerTangents.data(),
 								 indices.data(),
 								 cornerCount,
@@ -221,15 +219,15 @@ namespace Scene
 				{ cornerTangents.data(), 4 * sizeof(float), 4 * sizeof(float) },
 		};
 
-		DSA::FixedVector<uint32_t> remap(arena, cornerCount);
+		std::vector<uint32_t> remap(cornerCount);
 		size_t uniqueVertexCount =
 				meshopt_generateVertexRemapMulti(remap.data(), nullptr, cornerCount, cornerCount, streams, 4);
 
-		DSA::FixedVector<float> newPositions(arena, uniqueVertexCount * 3);
-		DSA::FixedVector<float> newNormals(arena, uniqueVertexCount * 3);
-		DSA::FixedVector<float> newUVs(arena, uniqueVertexCount * 2);
-		DSA::FixedVector<float> newTangents(arena, uniqueVertexCount * 4);
-		DSA::FixedVector<uint32_t> newIndices(arena, cornerCount);
+		std::vector<float> newPositions(uniqueVertexCount * 3);
+		std::vector<float> newNormals(uniqueVertexCount * 3);
+		std::vector<float> newUVs(uniqueVertexCount * 2);
+		std::vector<float> newTangents(uniqueVertexCount * 4);
+		std::vector<uint32_t> newIndices(cornerCount);
 
 		meshopt_remapVertexBuffer(newPositions.data(), cornerPositions.data(), cornerCount, 3 * sizeof(float), remap.data());
 		meshopt_remapVertexBuffer(newNormals.data(), cornerNormals.data(), cornerCount, 3 * sizeof(float), remap.data());
@@ -244,13 +242,13 @@ namespace Scene
 		indices = std::move(newIndices);
 	}
 
-	void Primitive::BuildMeshlets(Allocator::Arena &arena)
+	void Primitive::BuildMeshlets()
 	{
 		size_t maxMeshlets = meshopt_buildMeshletsBound(indices.size(), kMaxVerts, kMaxTris);
 
-		DSA::FixedVector<meshopt_Meshlet> rawMeshlets(arena, maxMeshlets);
-		DSA::FixedVector<uint32_t> rawMeshletVertices(arena, maxMeshlets * kMaxVerts);
-		DSA::FixedVector<uint8_t> rawMeshletTriangles(arena, maxMeshlets * kMaxTris * 3);
+		std::vector<meshopt_Meshlet> rawMeshlets(maxMeshlets);
+		std::vector<uint32_t> rawMeshletVertices(maxMeshlets * kMaxVerts);
+		std::vector<uint8_t> rawMeshletTriangles(maxMeshlets * kMaxTris * 3);
 
 		size_t meshletCount = meshopt_buildMeshlets(rawMeshlets.data(),
 													rawMeshletVertices.data(),
@@ -267,19 +265,19 @@ namespace Scene
 		const meshopt_Meshlet &last = rawMeshlets[meshletCount - 1];
 		size_t usedMeshletVerts = last.vertex_offset + last.vertex_count;
 
-		meshlets = DSA::FixedVector<Meshlet>(arena, meshletCount);
-		meshletVertices = DSA::FixedVector<uint32_t>(arena, usedMeshletVerts);
+		meshlets = std::vector<Meshlet>(meshletCount);
+		meshletVertices = std::vector<uint32_t>(usedMeshletVerts);
 
 		for (size_t i = 0; i < usedMeshletVerts; ++i)
 			meshletVertices[i] = rawMeshletVertices[i];
 
 		// Count total triangles across the meshlets we're keeping so the
-		// packed-triangle buffer can be a single arena allocation.
+		// packed-triangle buffer can be a single allocation.
 		size_t totalTriangles = 0;
 		for (size_t i = 0; i < meshletCount; ++i)
 			totalTriangles += rawMeshlets[i].triangle_count;
 
-		meshletTriangles = DSA::FixedVector<uint32_t>(arena, totalTriangles);
+		meshletTriangles = std::vector<uint32_t>(totalTriangles);
 
 		size_t packedTriangleCursor = 0;
 		for (size_t i = 0; i < meshletCount; ++i)

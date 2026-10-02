@@ -12,7 +12,7 @@ namespace Scene
 	public:
 		Material();
 
-		Material(Allocator::Arena &arena, const tg3_model &model, const char *gltfDir, const tg3_material &srcMaterial);
+		Material(const tg3_model &model, const char *gltfDir, const tg3_material &srcMaterial);
 
 		const Texture &GetAlbedoTexture() const
 		{

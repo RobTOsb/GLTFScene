@@ -22,12 +22,11 @@ namespace Scene
 	class GLTFScene
 	{
 	public:
-		explicit GLTFScene(Allocator::Arena &arena) : arena(arena) {}
+		GLTFScene() = default;
 
 		using ProgressCallback = void (*)(float progress, const char *stage, void *userData);
 
 		static SceneError MakeGLTFScene(const char *filename,
-										Allocator::Arena &arena,
 										GLTFScene &scene,
 										ProgressCallback onProgress = nullptr,
 										void *userData = nullptr);
@@ -68,7 +67,7 @@ namespace Scene
 					   mesh.GetName().empty() ? "(unnamed)" : mesh.GetName().c_str(),
 					   mesh.GetPrimitiveCount());
 
-				const DSA::FixedVector<Primitive> &prims = mesh.GetPrimitives();
+				const std::vector<Primitive> &prims = mesh.GetPrimitives();
 				for (size_t p = 0; p < prims.size(); ++p)
 				{
 					const Primitive &prim = prims[p];
@@ -104,10 +103,9 @@ namespace Scene
 		}
 
 	private:
-		Allocator::Arena &arena;
-		DSA::FixedVector<Mesh> meshes;
-		DSA::FixedVector<Material> materials;
-		DSA::FixedVector<Instance> nodes;
+		std::vector<Mesh> meshes;
+		std::vector<Material> materials;
+		std::vector<Instance> nodes;
 	};
 
 

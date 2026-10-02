@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "FixedVector.h"
+#include <vector>
 
 // One row per Mesh, describing where its primitives live in the PrimitiveGPUDesc table.
 struct MeshGPUDesc
@@ -128,9 +128,9 @@ namespace Scene
 		}
 
 	protected:
-		DSA::FixedVector<MeshGPUDesc> meshDescs;
-		DSA::FixedVector<PrimitiveGPUDesc> primitiveDescs;
-		DSA::FixedVector<InstanceGPU> instances;
+		std::vector<MeshGPUDesc> meshDescs;
+		std::vector<PrimitiveGPUDesc> primitiveDescs;
+		std::vector<InstanceGPU> instances;
 		uint32_t streamBufferIndices[(uint32_t) GPUStream::Count] = {};
 	};
 

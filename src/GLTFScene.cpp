@@ -13,7 +13,6 @@ namespace Scene
 	}
 
 	SceneError GLTFScene::MakeGLTFScene(const char *filename,
-										Allocator::Arena &arena,
 										GLTFScene &scene,
 										ProgressCallback onProgress,
 										void *userData)
@@ -63,39 +62,38 @@ namespace Scene
 			reportProgress(0.1f + fraction * 0.9f, stage);
 		};
 
-		scene.meshes = DSA::FixedVector<Mesh>(arena,
-											  model.meshes_count,
-											  [&](size_t m)
-											  {
-												  weightedProgress((uint32_t) m, "Meshes");
-												  return Mesh(arena, model, model.meshes[m]);
-											  });
+		scene.meshes.clear();
+		scene.meshes.reserve(model.meshes_count);
+		for (size_t m = 0; m < model.meshes_count; ++m)
+		{
+			weightedProgress((uint32_t) m, "Meshes");
+			scene.meshes.emplace_back(model, model.meshes[m]);
+		}
 		itemsDone += model.meshes_count;
 
 		std::string gltfDir = GetDirectory(filename);
-		scene.materials =
-				DSA::FixedVector<Material>(arena,
-										   model.materials_count,
-										   [&](size_t m)
-										   {
-											   weightedProgress((uint32_t) m, "Materials");
-											   return Material(arena, model, gltfDir.c_str(), model.materials[m]);
-										   });
+		scene.materials.clear();
+		scene.materials.reserve(model.materials_count);
+		for (size_t m = 0; m < model.materials_count; ++m)
+		{
+			weightedProgress((uint32_t) m, "Materials");
+			scene.materials.emplace_back(model, gltfDir.c_str(), model.materials[m]);
+		}
 		itemsDone += model.materials_count;
 
-		scene.nodes = DSA::FixedVector<Instance>(arena,
-												 model.nodes_count,
-												 [&](size_t n)
-												 {
-													 weightedProgress((uint32_t) n, "Nodes");
+		scene.nodes.clear();
+		scene.nodes.reserve(model.nodes_count);
+		for (size_t n = 0; n < model.nodes_count; ++n)
+		{
+			weightedProgress((uint32_t) n, "Nodes");
 
-													 const tg3_node &srcNode = model.nodes[n];
-													 std::string nodeName;
-													 if (srcNode.name.data)
-														 nodeName.assign(srcNode.name.data, srcNode.name.len);
+			const tg3_node &srcNode = model.nodes[n];
+			std::string nodeName;
+			if (srcNode.name.data)
+				nodeName.assign(srcNode.name.data, srcNode.name.len);
 
-													 return Instance(srcNode.mesh, std::move(nodeName), srcNode);
-												 });
+			scene.nodes.emplace_back(srcNode.mesh, std::move(nodeName), srcNode);
+		}
 		itemsDone += model.nodes_count;
 
 		tg3_model_free(&model);

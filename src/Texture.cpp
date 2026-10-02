@@ -11,13 +11,13 @@
 namespace Scene
 {
 
-	Texture::Texture(Allocator::Arena &arena, const uint8_t *rgba, int32_t w, int32_t h) :
-		pixels(arena, (size_t) w * h * 4), width(w), height(h)
+	Texture::Texture(const uint8_t *rgba, int32_t w, int32_t h) :
+		pixels((size_t) w * h * 4), width(w), height(h)
 	{
 		memcpy(pixels.data(), rgba, (size_t) w * h * 4);
 	}
 
-	void LoadTexture(Allocator::Arena &arena, const tg3_model &model, const char *gltfDir, int32_t imageIndex, Texture &out)
+	void LoadTexture(const tg3_model &model, const char *gltfDir, int32_t imageIndex, Texture &out)
 	{
 		if (imageIndex < 0 || (uint32_t) imageIndex >= model.images_count)
 			return;
@@ -29,7 +29,7 @@ namespace Scene
 
 		// Owns file bytes read from disk, if that path is taken, so they
 		// outlive the stbi_load_from_memory call below.
-		DSA::FixedVector<uint8_t> fileBytes;
+		std::vector<uint8_t> fileBytes;
 
 		if (img.buffer_view >= 0)
 		{
@@ -76,7 +76,7 @@ namespace Scene
 				return;
 			}
 
-			fileBytes = DSA::FixedVector<uint8_t>(arena, (size_t) size);
+			fileBytes = std::vector<uint8_t>((size_t) size);
 			size_t readBytes = fread(fileBytes.data(), 1, (size_t) size, f);
 			fclose(f);
 
@@ -99,7 +99,7 @@ namespace Scene
 			return;
 		}
 
-		out = Texture(arena, decoded, w, h);
+		out = Texture(decoded, w, h);
 		stbi_image_free(decoded);
 	}
 

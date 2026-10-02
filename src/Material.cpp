@@ -11,8 +11,7 @@ namespace Scene
 		metal = 1.0f;
 	}
 
-	Material::Material(Allocator::Arena &arena,
-					   const tg3_model &model,
+	Material::Material(const tg3_model &model,
 					   const char *gltfDir,
 					   const tg3_material &srcMaterial) : materialFactorsSet(true)
 	{
@@ -27,13 +26,13 @@ namespace Scene
 		if (pbr.base_color_texture.index >= 0)
 		{
 			int32_t imageIndex = ResolveTextureImage(model, pbr.base_color_texture.index);
-			LoadTexture(arena, model, gltfDir, imageIndex, albedoTexture);
+			LoadTexture(model, gltfDir, imageIndex, albedoTexture);
 		}
 
 		if (pbr.metallic_roughness_texture.index >= 0)
 		{
 			int32_t imageIndex = ResolveTextureImage(model, pbr.metallic_roughness_texture.index);
-			LoadTexture(arena, model, gltfDir, imageIndex, roughMetalTexture);
+			LoadTexture(model, gltfDir, imageIndex, roughMetalTexture);
 		}
 	}
 

@@ -4,11 +4,12 @@
 
 namespace Scene
 {
-	Mesh::Mesh(Allocator::Arena &arena, const tg3_model &model, const tg3_mesh &srcMesh) :
-		primitives(arena,
-				   srcMesh.primitives_count,
-				   [&](size_t p) { return Primitive(arena, model, srcMesh.primitives[p]); })
+	Mesh::Mesh(const tg3_model &model, const tg3_mesh &srcMesh)
 	{
+		primitives.reserve(srcMesh.primitives_count);
+		for (size_t p = 0; p < srcMesh.primitives_count; ++p)
+			primitives.emplace_back(model, srcMesh.primitives[p]);
+
 		if (srcMesh.name.data)
 			name.assign(srcMesh.name.data, srcMesh.name.len);
 	}

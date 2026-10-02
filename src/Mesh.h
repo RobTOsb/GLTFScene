@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "FixedVector.h"
+#include <vector>
 #include "Primitive.h"
 
 struct tg3_model;
@@ -12,13 +12,13 @@ namespace Scene
 	class Mesh
 	{
 	public:
-		Mesh(Allocator::Arena &arena, const tg3_model &model, const tg3_mesh &srcMesh);
+		Mesh(const tg3_model &model, const tg3_mesh &srcMesh);
 
 		const std::string &GetName() const
 		{
 			return name;
 		}
-		const DSA::FixedVector<Primitive> &GetPrimitives() const
+		const std::vector<Primitive> &GetPrimitives() const
 		{
 			return primitives;
 		}
@@ -29,6 +29,6 @@ namespace Scene
 
 	private:
 		std::string name;
-		DSA::FixedVector<Primitive> primitives;
+		std::vector<Primitive> primitives;
 	};
 }; // namespace Scene

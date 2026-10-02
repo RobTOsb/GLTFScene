@@ -1,22 +1,21 @@
 #pragma once
 
-#include "FixedVector.h"
+#include <stdint.h>
+#include <vector>
 
 struct tg3_model;
 struct tg3_primitive;
 
 namespace Scene
 {
-	bool ReadAccessorAsFloat(Allocator::Arena &arena,
-							 const tg3_model &model,
+	bool ReadAccessorAsFloat(const tg3_model &model,
 							 int32_t accessorIndex,
 							 int32_t expectedNumComponents,
-							 DSA::FixedVector<float> &out);
+							 std::vector<float> &out);
 
-	bool ReadAccessorAsIndices(Allocator::Arena &arena,
-							   const tg3_model &model,
+	bool ReadAccessorAsIndices(const tg3_model &model,
 							   int32_t accessorIndex,
-							   DSA::FixedVector<uint32_t> &out);
+							   std::vector<uint32_t> &out);
 
 	struct Meshlet
 	{
@@ -30,7 +29,7 @@ namespace Scene
 	class Primitive
 	{
 	public:
-		Primitive(Allocator::Arena &arena, const tg3_model &model, const tg3_primitive &prim);
+		Primitive(const tg3_model &model, const tg3_primitive &prim);
 
 		bool IsValid() const
 		{
@@ -57,70 +56,60 @@ namespace Scene
 			return indices.size();
 		}
 
-		const DSA::FixedVector<float> &GetPositions() const
+		const std::vector<float> &GetPositions() const
 		{
 			return positions;
 		}
 
-		const DSA::FixedVector<float> &GetTexCoord0() const
+		const std::vector<float> &GetTexCoord0() const
 		{
 			return texCoord0;
 		}
 
-		const DSA::FixedVector<float> &GetNormals() const
+		const std::vector<float> &GetNormals() const
 		{
 			return normals;
 		}
 
-		const DSA::FixedVector<float> &GetTangents() const
+		const std::vector<float> &GetTangents() const
 		{
 			return tangents;
 		}
 
-		const DSA::FixedVector<uint32_t> &GetIndices() const
+		const std::vector<uint32_t> &GetIndices() const
 		{
 			return indices;
 		}
 
-		const DSA::FixedVector<Meshlet> &GetMeshlets() const
+		const std::vector<Meshlet> &GetMeshlets() const
 		{
 			return meshlets;
 		}
 
-		const DSA::FixedVector<uint32_t> &GetMeshletVertices() const
+		const std::vector<uint32_t> &GetMeshletVertices() const
 		{
 			return meshletVertices;
 		}
 
-		const DSA::FixedVector<uint32_t> &GetMeshletTriangles() const
+		const std::vector<uint32_t> &GetMeshletTriangles() const
 		{
 			return meshletTriangles;
 		}
 
-		void BuildMeshlets(Allocator::Arena &arena);
+		void BuildMeshlets();
 
 	private:
-		// Generates tangents with meshoptimizer, which produces one tangent
-		// per triangle CORNER rather than per vertex -- the same vertex can
-		// legitimately need different tangents on either side of a UV seam.
-		// To keep a single indexed vertex stream, this deindexes
-		// position/normal/uv/tangent to per-corner arrays and re-welds them
-		// with meshopt_generateVertexRemapMulti, which splits any vertex
-		// whose corners disagree into separate vertices and rebuilds
-		// `indices` to match. Called before BuildMeshlets, since meshlet
-		// generation needs the final vertex/index counts.
-		void GenerateTangents(Allocator::Arena &arena);
+		void GenerateTangents();
 
+		std::vector<float> positions;
+		std::vector<float> texCoord0;
+		std::vector<float> normals;
+		std::vector<float> tangents;  // vec4: xyz + w handedness sign
+		std::vector<uint32_t> indices;
 
-		DSA::FixedVector<float> positions;
-		DSA::FixedVector<float> texCoord0;
-		DSA::FixedVector<float> normals;
-		DSA::FixedVector<float> tangents;  // vec4: xyz + w handedness sign
-		DSA::FixedVector<uint32_t> indices;
-
-		DSA::FixedVector<Meshlet> meshlets;
-		DSA::FixedVector<uint32_t> meshletVertices;
-		DSA::FixedVector<uint32_t> meshletTriangles;
+		std::vector<Meshlet> meshlets;
+		std::vector<uint32_t> meshletVertices;
+		std::vector<uint32_t> meshletTriangles;
 
 		int32_t materialIndex;
 	};
