@@ -85,20 +85,28 @@ namespace Scene
 			{
 				const Material &mat = materials[i];
 				const float *baseColour = mat.GetBaseColour();
-				printf("  [%zu] baseColour(%.2f, %.2f, %.2f) roughness=%.2f metal=%.2f "
-					   "albedo=%s(%dx%d) roughMetal=%s(%dx%d)\n",
+				static const char *const alphaModes[] = { "opaque", "mask", "blend" };
+				printf("  [%zu] baseColour(%.2f, %.2f, %.2f, %.2f) roughness=%.2f metal=%.2f alpha=%s(%.2f) "
+					   "transmission=%.2f albedo=%s(%dx%d) roughMetal=%s(%dx%d) normal=%s(%dx%d)\n",
 					   i,
 					   baseColour[0],
 					   baseColour[1],
 					   baseColour[2],
+					   baseColour[3],
 					   mat.GetRoughness(),
 					   mat.GetMetal(),
+					   alphaModes[(uint32_t) mat.GetAlphaMode()],
+					   mat.GetAlphaCutoff(),
+					   mat.GetTransmission(),
 					   mat.GetAlbedoTexture().IsValid() ? "yes" : "no",
 					   mat.GetAlbedoTexture().GetWidth(),
 					   mat.GetAlbedoTexture().GetHeight(),
 					   mat.GetRoughMetalTexture().IsValid() ? "yes" : "no",
 					   mat.GetRoughMetalTexture().GetWidth(),
-					   mat.GetRoughMetalTexture().GetHeight());
+					   mat.GetRoughMetalTexture().GetHeight(),
+					   mat.GetNormalTexture().IsValid() ? "yes" : "no",
+					   mat.GetNormalTexture().GetWidth(),
+					   mat.GetNormalTexture().GetHeight());
 			}
 		}
 
