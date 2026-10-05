@@ -37,6 +37,11 @@ namespace Scene
 			return normalTexture;
 		}
 
+		const Texture &GetEmissiveTexture() const
+		{
+			return emissiveTexture;
+		}
+
 		const float *GetBaseColour() const
 		{
 			return baseColour;
@@ -72,6 +77,23 @@ namespace Scene
 			return normalScale;
 		}
 
+		// glTF emissiveFactor, linear RGB.
+		const float *GetEmissive() const
+		{
+			return emissive;
+		}
+
+		// KHR_materials_emissive_strength, scales the emissive factor so it can exceed 1.
+		float GetEmissiveStrength() const
+		{
+			return emissiveStrength;
+		}
+
+		bool IsEmissive() const
+		{
+			return emissiveStrength > 0.0f && (emissive[0] > 0.0f || emissive[1] > 0.0f || emissive[2] > 0.0f);
+		}
+
 	private:
 		static int32_t ResolveTextureImage(const tg3_model &model, int32_t textureIndex);
 
@@ -84,11 +106,14 @@ namespace Scene
 		float roughness;
 		float metal;
 		float normalScale;
+		float emissive[3];
+		float emissiveStrength;
 
 		bool materialFactorsSet;
 
 		Texture albedoTexture;
 		Texture roughMetalTexture;
 		Texture normalTexture;
+		Texture emissiveTexture;
 	};
 }; // namespace Scene

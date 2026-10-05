@@ -39,6 +39,8 @@ namespace Scene
 		roughness = 1.0f;
 		metal = 1.0f;
 		normalScale = 1.0f;
+		emissive[0] = emissive[1] = emissive[2] = 0.0f;
+		emissiveStrength = 1.0f;
 	}
 
 	Material::Material(const tg3_model &model,
@@ -62,6 +64,10 @@ namespace Scene
 		roughness = (float) pbr.roughness_factor;
 		metal = (float) pbr.metallic_factor;
 		normalScale = (float) srcMaterial.normal_texture.scale;
+		emissive[0] = (float) srcMaterial.emissive_factor[0];
+		emissive[1] = (float) srcMaterial.emissive_factor[1];
+		emissive[2] = (float) srcMaterial.emissive_factor[2];
+		emissiveStrength = (float) ExtensionNumber(srcMaterial, "KHR_materials_emissive_strength", "emissiveStrength", 1.0);
 
 		if (pbr.base_color_texture.index >= 0)
 		{
@@ -79,6 +85,13 @@ namespace Scene
 		{
 			int32_t imageIndex = ResolveTextureImage(model, srcMaterial.normal_texture.index);
 			LoadTexture(model, gltfDir, imageIndex, normalTexture);
+		}
+
+		// A texture without a non-zero factor emits nothing, so it is not worth decoding.
+		if (srcMaterial.emissive_texture.index >= 0 && IsEmissive())
+		{
+			int32_t imageIndex = ResolveTextureImage(model, srcMaterial.emissive_texture.index);
+			LoadTexture(model, gltfDir, imageIndex, emissiveTexture);
 		}
 	}
 

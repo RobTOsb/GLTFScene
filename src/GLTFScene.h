@@ -87,7 +87,8 @@ namespace Scene
 				const float *baseColour = mat.GetBaseColour();
 				static const char *const alphaModes[] = { "opaque", "mask", "blend" };
 				printf("  [%zu] baseColour(%.2f, %.2f, %.2f, %.2f) roughness=%.2f metal=%.2f alpha=%s(%.2f) "
-					   "transmission=%.2f albedo=%s(%dx%d) roughMetal=%s(%dx%d) normal=%s(%dx%d)\n",
+					   "transmission=%.2f emissive(%.2f, %.2f, %.2f)x%.2f albedo=%s(%dx%d) roughMetal=%s(%dx%d) "
+					   "normal=%s(%dx%d) emissive=%s(%dx%d)\n",
 					   i,
 					   baseColour[0],
 					   baseColour[1],
@@ -98,6 +99,10 @@ namespace Scene
 					   alphaModes[(uint32_t) mat.GetAlphaMode()],
 					   mat.GetAlphaCutoff(),
 					   mat.GetTransmission(),
+					   mat.GetEmissive()[0],
+					   mat.GetEmissive()[1],
+					   mat.GetEmissive()[2],
+					   mat.GetEmissiveStrength(),
 					   mat.GetAlbedoTexture().IsValid() ? "yes" : "no",
 					   mat.GetAlbedoTexture().GetWidth(),
 					   mat.GetAlbedoTexture().GetHeight(),
@@ -106,7 +111,10 @@ namespace Scene
 					   mat.GetRoughMetalTexture().GetHeight(),
 					   mat.GetNormalTexture().IsValid() ? "yes" : "no",
 					   mat.GetNormalTexture().GetWidth(),
-					   mat.GetNormalTexture().GetHeight());
+					   mat.GetNormalTexture().GetHeight(),
+					   mat.GetEmissiveTexture().IsValid() ? "yes" : "no",
+					   mat.GetEmissiveTexture().GetWidth(),
+					   mat.GetEmissiveTexture().GetHeight());
 			}
 		}
 
