@@ -4,25 +4,12 @@
 
 #include <vector>
 
-// One row per Mesh, describing where its primitives live in the PrimitiveGPUDesc table.
 struct MeshGPUDesc
 {
 	uint32_t primitiveOffset;
 	uint32_t primitiveCount;
 };
 
-// One row per Primitive, describing where its data lives in the scene's
-// shared global buffers (see GPUScene::GetStreamBufferIndex). Every
-// *Offset/*Count field here is an ELEMENT offset/count into the
-// corresponding shared buffer -- not a byte offset, and not a separate
-// per-primitive descriptor. All primitives in a GPUScene share the same
-// small set of buffers/descriptors; only the offsets differ.
-//
-// Position, TexCoord0, Normal and Tangent are all required attributes (see
-// Primitive::IsValid) and therefore share one offset/count: every vertex
-// stream for a primitive is the same length and starts at the same index
-// in its respective shared buffer, so there's nothing to flag as present
-// or absent.
 struct PrimitiveGPUDesc
 {
 	uint32_t meshletOffset;
@@ -44,9 +31,6 @@ struct InstanceGPU
 };
 
 // The scene-wide shared buffers every primitive's data is packed into.
-// Unlike a per-primitive-descriptor layout, there is exactly one of each of
-// these per GPUScene, regardless of how many primitives/meshes it holds --
-// PrimitiveGPUDesc offsets pick out each primitive's slice.
 enum class GPUStream : uint32_t
 {
 	Position,
@@ -64,31 +48,13 @@ namespace Scene
 {
 	class GLTFScene;
 
-	// RHI-agnostic entry point for turning a loaded GLTFScene into whatever
-	// GPU-resident form a given renderer backend needs. Callers only see
-	// this interface; how (and whether) an implementation actually talks to
-	// a device is entirely up to it.
-	//
-	// The MeshGPUDesc/PrimitiveGPUDesc/InstanceGPU tables live here rather
-	// than in each backend, since every backend needs the same CPU-side
-	// bookkeeping (which mesh owns which primitives, which primitive owns
-	// which meshlets, per-instance transforms) regardless of how it turns
-	// that into actual GPU resources/descriptors.
 	class GPUScene
 	{
 	public:
 		virtual ~GPUScene() = default;
 
-		// Builds (or rebuilds) all GPU-resident resources for `scene`.
-		// Implementations own the lifetime of whatever they allocate, and
-		// are expected to populate meshDescs/primitiveDescs/instances as
-		// part of doing so.
 		virtual void BuildGPUScene(const GLTFScene &scene) = 0;
 
-		// Pushes updated per-instance transforms for the current frame.
-		// Cheap relative to BuildGPUScene: no new resources, no descriptor
-		// allocation, just refreshing InstanceGPU data that already has a
-		// home.
 		virtual void UpdateInstances(const GLTFScene &scene) = 0;
 
 		size_t GetMeshDescCount() const
@@ -117,11 +83,6 @@ namespace Scene
 			return instances[index];
 		}
 
-		// The bindless descriptor index for one of the scene's shared
-		// global buffers (see GPUStream). A mesh/task shader combines this
-		// with a PrimitiveGPUDesc offset to reach a specific primitive's
-		// data: e.g. ResourceDescriptorHeap[GetStreamBufferIndex(Position)]
-		// indexed at desc.vertexOffset + localVertexIndex.
 		uint32_t GetStreamBufferIndex(GPUStream stream) const
 		{
 			return streamBufferIndices[(uint32_t) stream];
