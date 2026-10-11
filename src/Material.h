@@ -42,6 +42,11 @@ namespace Scene
 			return emissiveTexture;
 		}
 
+		const Texture &GetTransmissionTexture() const
+		{
+			return transmissionTexture;
+		}
+
 		const float *GetBaseColour() const
 		{
 			return baseColour;
@@ -60,6 +65,36 @@ namespace Scene
 		float GetTransmission() const
 		{
 			return transmission;
+		}
+
+		// KHR_materials_ior, 1.5 when absent.
+		float GetIor() const
+		{
+			return ior;
+		}
+
+		// KHR_materials_volume thicknessFactor. 0 (also when the extension is absent) means the
+		// material is thin-walled: light crosses it without refracting or entering a medium.
+		float GetThickness() const
+		{
+			return thickness;
+		}
+
+		bool IsThinWalled() const
+		{
+			return thickness <= 0.0f;
+		}
+
+		// KHR_materials_volume: white light that travels attenuationDistance through the medium
+		// comes out as attenuationColour. The distance is +infinity (no absorption) when absent.
+		const float *GetAttenuationColour() const
+		{
+			return attenuationColour;
+		}
+
+		float GetAttenuationDistance() const
+		{
+			return attenuationDistance;
 		}
 
 		float GetRoughness() const
@@ -101,6 +136,10 @@ namespace Scene
 		AlphaMode alphaMode;
 		float alphaCutoff;
 		float transmission;
+		float ior;
+		float thickness;
+		float attenuationColour[3];
+		float attenuationDistance;
 
 		// Will get packed on the gpu
 		float roughness;
@@ -115,5 +154,6 @@ namespace Scene
 		Texture roughMetalTexture;
 		Texture normalTexture;
 		Texture emissiveTexture;
+		Texture transmissionTexture;
 	};
 }; // namespace Scene

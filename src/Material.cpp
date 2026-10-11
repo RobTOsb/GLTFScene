@@ -2,31 +2,75 @@
 
 #include "tiny_gltf_v3.h"
 
+#include <limits>
+
 namespace Scene
 {
 	namespace
 	{
-		// Reads a number from an extension's JSON object, falling back when it is absent.
-		double ExtensionNumber(const tg3_material &material, const char *extension, const char *key, double fallback)
+		// The member key of a JSON object, or null when it is absent.
+		const tg3_value *ObjectMember(const tg3_value &object, const char *key)
+		{
+			if (object.type != TG3_VALUE_OBJECT)
+				return nullptr;
+			for (uint32_t j = 0; j < object.object_count; ++j)
+			{
+				if (tg3_str_equals_cstr(object.object_data[j].key, key))
+					return &object.object_data[j].value;
+			}
+			return nullptr;
+		}
+
+		// The member key of an extension's JSON object, or null when either is absent.
+		const tg3_value *ExtensionValue(const tg3_material &material, const char *extension, const char *key)
 		{
 			for (uint32_t i = 0; i < material.ext.extensions_count; ++i)
 			{
 				const tg3_extension &ext = material.ext.extensions[i];
-				if (!tg3_str_equals_cstr(ext.name, extension) || ext.value.type != TG3_VALUE_OBJECT)
-					continue;
-
-				for (uint32_t j = 0; j < ext.value.object_count; ++j)
-				{
-					const tg3_kv_pair &pair = ext.value.object_data[j];
-					if (!tg3_str_equals_cstr(pair.key, key))
-						continue;
-					if (pair.value.type == TG3_VALUE_REAL)
-						return pair.value.real_val;
-					if (pair.value.type == TG3_VALUE_INT)
-						return (double) pair.value.int_val;
-				}
+				if (tg3_str_equals_cstr(ext.name, extension))
+					return ObjectMember(ext.value, key);
 			}
-			return fallback;
+			return nullptr;
+		}
+
+		bool ToNumber(const tg3_value *value, double &out)
+		{
+			if (value && value->type == TG3_VALUE_REAL)
+				out = value->real_val;
+			else if (value && value->type == TG3_VALUE_INT)
+				out = (double) value->int_val;
+			else
+				return false;
+			return true;
+		}
+
+		// Reads a number from an extension's JSON object, falling back when it is absent.
+		double ExtensionNumber(const tg3_material &material, const char *extension, const char *key, double fallback)
+		{
+			double value;
+			return ToNumber(ExtensionValue(material, extension, key), value) ? value : fallback;
+		}
+
+		// Reads an RGB array from an extension's JSON object, leaving out as it is when absent.
+		void ExtensionColour(const tg3_material &material, const char *extension, const char *key, float (&out)[3])
+		{
+			const tg3_value *value = ExtensionValue(material, extension, key);
+			if (!value || value->type != TG3_VALUE_ARRAY || value->array_count < 3)
+				return;
+			for (uint32_t c = 0; c < 3; ++c)
+			{
+				double component;
+				if (ToNumber(&value->array_data[c], component))
+					out[c] = (float) component;
+			}
+		}
+
+		// The texture index of an extension's textureInfo member, -1 when absent.
+		int32_t ExtensionTexture(const tg3_material &material, const char *extension, const char *key)
+		{
+			const tg3_value *info = ExtensionValue(material, extension, key);
+			double index;
+			return info && ToNumber(ObjectMember(*info, "index"), index) ? (int32_t) index : -1;
 		}
 	} // namespace
 
@@ -36,6 +80,10 @@ namespace Scene
 		alphaMode = AlphaMode::Opaque;
 		alphaCutoff = 0.5f;
 		transmission = 0.0f;
+		ior = 1.5f;
+		thickness = 0.0f;
+		attenuationColour[0] = attenuationColour[1] = attenuationColour[2] = 1.0f;
+		attenuationDistance = std::numeric_limits<float>::infinity();
 		roughness = 1.0f;
 		metal = 1.0f;
 		normalScale = 1.0f;
@@ -61,6 +109,14 @@ namespace Scene
 			alphaMode = AlphaMode::Blend;
 		alphaCutoff = (float) srcMaterial.alpha_cutoff;
 		transmission = (float) ExtensionNumber(srcMaterial, "KHR_materials_transmission", "transmissionFactor", 0.0);
+		ior = (float) ExtensionNumber(srcMaterial, "KHR_materials_ior", "ior", 1.5);
+		thickness = (float) ExtensionNumber(srcMaterial, "KHR_materials_volume", "thicknessFactor", 0.0);
+		attenuationColour[0] = attenuationColour[1] = attenuationColour[2] = 1.0f;
+		ExtensionColour(srcMaterial, "KHR_materials_volume", "attenuationColor", attenuationColour);
+		attenuationDistance = (float) ExtensionNumber(srcMaterial,
+													  "KHR_materials_volume",
+													  "attenuationDistance",
+													  std::numeric_limits<double>::infinity());
 		roughness = (float) pbr.roughness_factor;
 		metal = (float) pbr.metallic_factor;
 		normalScale = (float) srcMaterial.normal_texture.scale;
@@ -92,6 +148,15 @@ namespace Scene
 		{
 			int32_t imageIndex = ResolveTextureImage(model, srcMaterial.emissive_texture.index);
 			LoadTexture(model, gltfDir, imageIndex, emissiveTexture);
+		}
+
+		// Likewise, without transmission the texture has nothing to scale.
+		const int32_t transmissionTextureIndex =
+				ExtensionTexture(srcMaterial, "KHR_materials_transmission", "transmissionTexture");
+		if (transmissionTextureIndex >= 0 && transmission > 0.0f)
+		{
+			int32_t imageIndex = ResolveTextureImage(model, transmissionTextureIndex);
+			LoadTexture(model, gltfDir, imageIndex, transmissionTexture);
 		}
 	}
 
