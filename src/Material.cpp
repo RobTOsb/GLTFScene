@@ -93,7 +93,8 @@ namespace Scene
 
 	Material::Material(const tg3_model &model,
 					   const char *gltfDir,
-					   const tg3_material &srcMaterial) : materialFactorsSet(true)
+					   const tg3_material &srcMaterial,
+					   std::vector<Texture> &images) : materialFactorsSet(true)
 	{
 		const tg3_pbr_metallic_roughness &pbr = srcMaterial.pbr_metallic_roughness;
 
@@ -127,27 +128,23 @@ namespace Scene
 
 		if (pbr.base_color_texture.index >= 0)
 		{
-			int32_t imageIndex = ResolveTextureImage(model, pbr.base_color_texture.index);
-			LoadTexture(model, gltfDir, imageIndex, albedoTexture);
+			albedoTexture = LoadSharedTexture(model, gltfDir, pbr.base_color_texture.index, images);
 		}
 
 		if (pbr.metallic_roughness_texture.index >= 0)
 		{
-			int32_t imageIndex = ResolveTextureImage(model, pbr.metallic_roughness_texture.index);
-			LoadTexture(model, gltfDir, imageIndex, roughMetalTexture);
+			roughMetalTexture = LoadSharedTexture(model, gltfDir, pbr.metallic_roughness_texture.index, images);
 		}
 
 		if (srcMaterial.normal_texture.index >= 0)
 		{
-			int32_t imageIndex = ResolveTextureImage(model, srcMaterial.normal_texture.index);
-			LoadTexture(model, gltfDir, imageIndex, normalTexture);
+			normalTexture = LoadSharedTexture(model, gltfDir, srcMaterial.normal_texture.index, images);
 		}
 
 		// A texture without a non-zero factor emits nothing, so it is not worth decoding.
 		if (srcMaterial.emissive_texture.index >= 0 && IsEmissive())
 		{
-			int32_t imageIndex = ResolveTextureImage(model, srcMaterial.emissive_texture.index);
-			LoadTexture(model, gltfDir, imageIndex, emissiveTexture);
+			emissiveTexture = LoadSharedTexture(model, gltfDir, srcMaterial.emissive_texture.index, images);
 		}
 
 		// Likewise, without transmission the texture has nothing to scale.
@@ -155,8 +152,7 @@ namespace Scene
 				ExtensionTexture(srcMaterial, "KHR_materials_transmission", "transmissionTexture");
 		if (transmissionTextureIndex >= 0 && transmission > 0.0f)
 		{
-			int32_t imageIndex = ResolveTextureImage(model, transmissionTextureIndex);
-			LoadTexture(model, gltfDir, imageIndex, transmissionTexture);
+			transmissionTexture = LoadSharedTexture(model, gltfDir, transmissionTextureIndex, images);
 		}
 	}
 
@@ -165,6 +161,19 @@ namespace Scene
 		if (textureIndex < 0 || (uint32_t) textureIndex >= model.textures_count)
 			return -1;
 		return model.textures[textureIndex].source;
+	}
+
+	Texture Material::LoadSharedTexture(const tg3_model &model,
+										const char *gltfDir,
+										int32_t textureIndex,
+										std::vector<Texture> &images)
+	{
+		const int32_t imageIndex = ResolveTextureImage(model, textureIndex);
+		if (imageIndex < 0 || (size_t) imageIndex >= images.size())
+			return Texture();
+		if (!images[imageIndex].IsValid())
+			LoadTexture(model, gltfDir, imageIndex, images[imageIndex]);
+		return images[imageIndex];
 	}
 
 }; // namespace Scene

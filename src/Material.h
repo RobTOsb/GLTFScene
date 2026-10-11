@@ -19,8 +19,7 @@ namespace Scene
 	{
 	public:
 		Material();
-
-		Material(const tg3_model &model, const char *gltfDir, const tg3_material &srcMaterial);
+		Material(const tg3_model &model, const char *gltfDir, const tg3_material &srcMaterial, std::vector<Texture> &images);
 
 		const Texture &GetAlbedoTexture() const
 		{
@@ -131,6 +130,10 @@ namespace Scene
 
 	private:
 		static int32_t ResolveTextureImage(const tg3_model &model, int32_t textureIndex);
+		static Texture LoadSharedTexture(const tg3_model &model,
+										 const char *gltfDir,
+										 int32_t textureIndex,
+										 std::vector<Texture> &images);
 
 		float baseColour[4];
 		AlphaMode alphaMode;

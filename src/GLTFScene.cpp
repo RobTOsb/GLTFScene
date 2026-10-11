@@ -74,10 +74,12 @@ namespace Scene
 		std::string gltfDir = GetDirectory(filename);
 		scene.materials.clear();
 		scene.materials.reserve(model.materials_count);
+		// Decoded once each, whatever number of materials use them.
+		std::vector<Texture> images(model.images_count);
 		for (size_t m = 0; m < model.materials_count; ++m)
 		{
 			weightedProgress((uint32_t) m, "Materials");
-			scene.materials.emplace_back(model, gltfDir.c_str(), model.materials[m]);
+			scene.materials.emplace_back(model, gltfDir.c_str(), model.materials[m], images);
 		}
 		itemsDone += model.materials_count;
 

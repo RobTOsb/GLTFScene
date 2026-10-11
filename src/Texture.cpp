@@ -12,9 +12,8 @@ namespace Scene
 {
 
 	Texture::Texture(const uint8_t *rgba, int32_t w, int32_t h) :
-		pixels((size_t) w * h * 4), width(w), height(h)
+		pixels(std::make_shared<const std::vector<uint8_t>>(rgba, rgba + (size_t) w * h * 4)), width(w), height(h)
 	{
-		memcpy(pixels.data(), rgba, (size_t) w * h * 4);
 	}
 
 	void LoadTexture(const tg3_model &model, const char *gltfDir, int32_t imageIndex, Texture &out)

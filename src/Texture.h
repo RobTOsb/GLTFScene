@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <memory>
 #include <vector>
 
 struct tg3_model;
@@ -25,13 +26,14 @@ namespace Scene
 		{
 			return height;
 		}
+		// Copies of a texture share these, so the same pointer means the same image.
 		const uint8_t *GetPixels() const
 		{
-			return pixels.data();
+			return pixels ? pixels->data() : nullptr;
 		}
 
 	private:
-		std::vector<uint8_t> pixels; // RGBA8, width * height * 4 bytes
+		std::shared_ptr<const std::vector<uint8_t>> pixels; // RGBA8, width * height * 4 bytes
 		int32_t width;
 		int32_t height;
 	};
