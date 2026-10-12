@@ -72,28 +72,11 @@ namespace Scene
 			return ior;
 		}
 
-		// KHR_materials_volume thicknessFactor. 0 (also when the extension is absent) means the
-		// material is thin-walled: light crosses it without refracting or entering a medium.
-		float GetThickness() const
-		{
-			return thickness;
-		}
-
+		// Both sides are outside: light crosses without refracting or entering a medium. Not read
+		// from the glTF
 		bool IsThinWalled() const
 		{
-			return thickness <= 0.0f;
-		}
-
-		// KHR_materials_volume: white light that travels attenuationDistance through the medium
-		// comes out as attenuationColour. The distance is +infinity (no absorption) when absent.
-		const float *GetAttenuationColour() const
-		{
-			return attenuationColour;
-		}
-
-		float GetAttenuationDistance() const
-		{
-			return attenuationDistance;
+			return thinWalled;
 		}
 
 		float GetRoughness() const
@@ -140,9 +123,7 @@ namespace Scene
 		float alphaCutoff;
 		float transmission;
 		float ior;
-		float thickness;
-		float attenuationColour[3];
-		float attenuationDistance;
+		bool thinWalled;
 
 		// Will get packed on the gpu
 		float roughness;

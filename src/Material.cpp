@@ -2,8 +2,6 @@
 
 #include "tiny_gltf_v3.h"
 
-#include <limits>
-
 namespace Scene
 {
 	namespace
@@ -51,20 +49,6 @@ namespace Scene
 			return ToNumber(ExtensionValue(material, extension, key), value) ? value : fallback;
 		}
 
-		// Reads an RGB array from an extension's JSON object, leaving out as it is when absent.
-		void ExtensionColour(const tg3_material &material, const char *extension, const char *key, float (&out)[3])
-		{
-			const tg3_value *value = ExtensionValue(material, extension, key);
-			if (!value || value->type != TG3_VALUE_ARRAY || value->array_count < 3)
-				return;
-			for (uint32_t c = 0; c < 3; ++c)
-			{
-				double component;
-				if (ToNumber(&value->array_data[c], component))
-					out[c] = (float) component;
-			}
-		}
-
 		// The texture index of an extension's textureInfo member, -1 when absent.
 		int32_t ExtensionTexture(const tg3_material &material, const char *extension, const char *key)
 		{
@@ -81,9 +65,7 @@ namespace Scene
 		alphaCutoff = 0.5f;
 		transmission = 0.0f;
 		ior = 1.5f;
-		thickness = 0.0f;
-		attenuationColour[0] = attenuationColour[1] = attenuationColour[2] = 1.0f;
-		attenuationDistance = std::numeric_limits<float>::infinity();
+		thinWalled = false;
 		roughness = 1.0f;
 		metal = 1.0f;
 		normalScale = 1.0f;
@@ -111,13 +93,7 @@ namespace Scene
 		alphaCutoff = (float) srcMaterial.alpha_cutoff;
 		transmission = (float) ExtensionNumber(srcMaterial, "KHR_materials_transmission", "transmissionFactor", 0.0);
 		ior = (float) ExtensionNumber(srcMaterial, "KHR_materials_ior", "ior", 1.5);
-		thickness = (float) ExtensionNumber(srcMaterial, "KHR_materials_volume", "thicknessFactor", 0.0);
-		attenuationColour[0] = attenuationColour[1] = attenuationColour[2] = 1.0f;
-		ExtensionColour(srcMaterial, "KHR_materials_volume", "attenuationColor", attenuationColour);
-		attenuationDistance = (float) ExtensionNumber(srcMaterial,
-													  "KHR_materials_volume",
-													  "attenuationDistance",
-													  std::numeric_limits<double>::infinity());
+		thinWalled = false;
 		roughness = (float) pbr.roughness_factor;
 		metal = (float) pbr.metallic_factor;
 		normalScale = (float) srcMaterial.normal_texture.scale;

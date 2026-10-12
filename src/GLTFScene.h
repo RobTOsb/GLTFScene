@@ -87,7 +87,7 @@ namespace Scene
 				const float *baseColour = mat.GetBaseColour();
 				static const char *const alphaModes[] = { "opaque", "mask", "blend" };
 				printf("  [%zu] baseColour(%.2f, %.2f, %.2f, %.2f) roughness=%.2f metal=%.2f alpha=%s(%.2f) "
-					   "transmission=%.2f ior=%.2f thickness=%.2f emissive(%.2f, %.2f, %.2f)x%.2f albedo=%s(%dx%d) roughMetal=%s(%dx%d) "
+					   "transmission=%.2f ior=%.2f thinWalled=%s emissive(%.2f, %.2f, %.2f)x%.2f albedo=%s(%dx%d) roughMetal=%s(%dx%d) "
 					   "normal=%s(%dx%d) emissive=%s(%dx%d)\n",
 					   i,
 					   baseColour[0],
@@ -100,7 +100,7 @@ namespace Scene
 					   mat.GetAlphaCutoff(),
 					   mat.GetTransmission(),
 					   mat.GetIor(),
-					   mat.GetThickness(),
+					   mat.IsThinWalled() ? "yes" : "no",
 					   mat.GetEmissive()[0],
 					   mat.GetEmissive()[1],
 					   mat.GetEmissive()[2],
