@@ -46,6 +46,18 @@ namespace Scene
 			return transmissionTexture;
 		}
 
+		// KHR_materials_diffuse_transmission: A multiplies the factor.
+		const Texture &GetDiffuseTransmissionTexture() const
+		{
+			return diffuseTransmissionTexture;
+		}
+
+		// KHR_materials_diffuse_transmission: sRGB, RGB multiplies the colour factor.
+		const Texture &GetDiffuseTransmissionColourTexture() const
+		{
+			return diffuseTransmissionColourTexture;
+		}
+
 		const float *GetBaseColour() const
 		{
 			return baseColour;
@@ -72,11 +84,24 @@ namespace Scene
 			return ior;
 		}
 
-		// Both sides are outside: light crosses without refracting or entering a medium. Not read
-		// from the glTF
+		// Both sides are outside: light crosses without refracting or entering a medium. Set by the
+		// EXT_materials_thin_wall extension (our own, {"thinWalled": true} or just {}).
 		bool IsThinWalled() const
 		{
 			return thinWalled;
+		}
+
+		// KHR_materials_diffuse_transmission factor: the share of the diffuse base that is transmitted
+		// rather than reflected, 0 when absent.
+		float GetDiffuseTransmission() const
+		{
+			return diffuseTransmission;
+		}
+
+		// KHR_materials_diffuse_transmission colour factor, linear RGB, white when absent.
+		const float *GetDiffuseTransmissionColour() const
+		{
+			return diffuseTransmissionColour;
 		}
 
 		float GetRoughness() const
@@ -124,6 +149,8 @@ namespace Scene
 		float transmission;
 		float ior;
 		bool thinWalled;
+		float diffuseTransmission;
+		float diffuseTransmissionColour[3];
 
 		// Will get packed on the gpu
 		float roughness;
@@ -139,5 +166,7 @@ namespace Scene
 		Texture normalTexture;
 		Texture emissiveTexture;
 		Texture transmissionTexture;
+		Texture diffuseTransmissionTexture;
+		Texture diffuseTransmissionColourTexture;
 	};
 }; // namespace Scene

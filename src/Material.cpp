@@ -49,6 +49,16 @@ namespace Scene
 			return ToNumber(ExtensionValue(material, extension, key), value) ? value : fallback;
 		}
 
+		bool HasExtension(const tg3_material &material, const char *extension)
+		{
+			for (uint32_t i = 0; i < material.ext.extensions_count; ++i)
+			{
+				if (tg3_str_equals_cstr(material.ext.extensions[i].name, extension))
+					return true;
+			}
+			return false;
+		}
+
 		// The texture index of an extension's textureInfo member, -1 when absent.
 		int32_t ExtensionTexture(const tg3_material &material, const char *extension, const char *key)
 		{
@@ -66,6 +76,8 @@ namespace Scene
 		transmission = 0.0f;
 		ior = 1.5f;
 		thinWalled = false;
+		diffuseTransmission = 0.0f;
+		diffuseTransmissionColour[0] = diffuseTransmissionColour[1] = diffuseTransmissionColour[2] = 1.0f;
 		roughness = 1.0f;
 		metal = 1.0f;
 		normalScale = 1.0f;
@@ -93,7 +105,28 @@ namespace Scene
 		alphaCutoff = (float) srcMaterial.alpha_cutoff;
 		transmission = (float) ExtensionNumber(srcMaterial, "KHR_materials_transmission", "transmissionFactor", 0.0);
 		ior = (float) ExtensionNumber(srcMaterial, "KHR_materials_ior", "ior", 1.5);
-		thinWalled = false;
+		// Present means thin-walled unless it says "thinWalled": false.
+		thinWalled = HasExtension(srcMaterial, "EXT_materials_thin_wall");
+		if (const tg3_value *flag = ExtensionValue(srcMaterial, "EXT_materials_thin_wall", "thinWalled");
+			flag && flag->type == TG3_VALUE_BOOL)
+			thinWalled = flag->bool_val != 0;
+		diffuseTransmission = (float) ExtensionNumber(srcMaterial,
+													  "KHR_materials_diffuse_transmission",
+													  "diffuseTransmissionFactor",
+													  0.0);
+		diffuseTransmissionColour[0] = diffuseTransmissionColour[1] = diffuseTransmissionColour[2] = 1.0f;
+		if (const tg3_value *colour = ExtensionValue(srcMaterial,
+													 "KHR_materials_diffuse_transmission",
+													 "diffuseTransmissionColorFactor");
+			colour && colour->type == TG3_VALUE_ARRAY)
+		{
+			for (uint32_t c = 0; c < 3 && c < colour->array_count; ++c)
+			{
+				double value;
+				if (ToNumber(&colour->array_data[c], value))
+					diffuseTransmissionColour[c] = (float) value;
+			}
+		}
 		roughness = (float) pbr.roughness_factor;
 		metal = (float) pbr.metallic_factor;
 		normalScale = (float) srcMaterial.normal_texture.scale;
@@ -129,6 +162,19 @@ namespace Scene
 		if (transmissionTextureIndex >= 0 && transmission > 0.0f)
 		{
 			transmissionTexture = LoadSharedTexture(model, gltfDir, transmissionTextureIndex, images);
+		}
+
+		if (diffuseTransmission > 0.0f)
+		{
+			const int32_t factorTextureIndex =
+					ExtensionTexture(srcMaterial, "KHR_materials_diffuse_transmission", "diffuseTransmissionTexture");
+			if (factorTextureIndex >= 0)
+				diffuseTransmissionTexture = LoadSharedTexture(model, gltfDir, factorTextureIndex, images);
+			const int32_t colourTextureIndex = ExtensionTexture(srcMaterial,
+																"KHR_materials_diffuse_transmission",
+																"diffuseTransmissionColorTexture");
+			if (colourTextureIndex >= 0)
+				diffuseTransmissionColourTexture = LoadSharedTexture(model, gltfDir, colourTextureIndex, images);
 		}
 	}
 

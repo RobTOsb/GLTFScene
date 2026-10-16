@@ -71,8 +71,9 @@ namespace Scene
 				for (size_t p = 0; p < prims.size(); ++p)
 				{
 					const Primitive &prim = prims[p];
-					printf("      [%zu] POSITION|NORMAL|TEXCOORD_0|TANGENT%s, %zu vert(s), %zu index(es), material %d\n",
+					printf("      [%zu] POSITION|NORMAL%s|TANGENT%s, %zu vert(s), %zu index(es), material %d\n",
 						   p,
+						   prim.HasTexCoord0() ? "|TEXCOORD_0" : "",
 						   prim.HasIndices() ? "|INDICES" : "",
 						   prim.GetVertexCount(),
 						   prim.GetIndexCount(),

@@ -1,5 +1,6 @@
 #include "Primitive.h"
 
+#include <cmath>
 #include <utility>
 
 #include "meshoptimizer.h"
@@ -130,11 +131,12 @@ namespace Scene
 	Primitive::Primitive(const tg3_model &model, const tg3_primitive &prim) :
 		materialIndex(prim.material)
 	{
-		// POSITION, NORMAL and TEXCOORD_0 are required; every primitive in
-		// this pipeline is expected to carry them, so a missing one is a
-		// load error rather than an optional stream. TANGENT is not read
-		// from the source -- glTF's tangent data is frequently missing or
-		// low quality, so it's always generated (see GenerateTangents).
+		// POSITION and NORMAL are required, so a missing one is a load error.
+		// TEXCOORD_0 and indices are optional: without UVs every vertex gets
+		// (0, 0), without indices the vertices are taken as a triangle list.
+		// TANGENT is not read from the source -- glTF's tangent data is
+		// frequently missing or low quality, so it's always generated (see
+		// GenerateTangents).
 		int32_t posAccessor = FindAttribute(prim, "POSITION");
 		if (!ReadAccessorAsFloat(model, posAccessor, 3, positions))
 		{
@@ -142,25 +144,82 @@ namespace Scene
 			return;
 		}
 
+		const size_t vertexCount = GetVertexCount();
+
 		int32_t normalAccessor = FindAttribute(prim, "NORMAL");
-		if (!ReadAccessorAsFloat(model, normalAccessor, 3, normals))
+		if (!ReadAccessorAsFloat(model, normalAccessor, 3, normals) || normals.size() != vertexCount * 3)
 		{
 			fprintf(stderr, "Primitive missing/invalid NORMAL attribute\n");
+			positions.clear();
+			normals.clear();
 			return;
 		}
 
 		int32_t uvAccessor = FindAttribute(prim, "TEXCOORD_0");
-		if (!ReadAccessorAsFloat(model, uvAccessor, 2, texCoord0))
+		hasTexCoord0 = uvAccessor >= 0 && ReadAccessorAsFloat(model, uvAccessor, 2, texCoord0) &&
+					   texCoord0.size() == vertexCount * 2;
+		if (!hasTexCoord0)
 		{
-			fprintf(stderr, "Primitive missing/invalid TEXCOORD_0 attribute\n");
-			return;
+			if (uvAccessor >= 0)
+				fprintf(stderr, "Primitive has an invalid TEXCOORD_0 attribute, using UV (0, 0)\n");
+			texCoord0.assign(vertexCount * 2, 0.0f);
 		}
 
 		if (prim.indices >= 0)
+		{
 			ReadAccessorAsIndices(model, prim.indices, indices);
+		}
+		else
+		{
+			// Non-indexed: every three vertices are a triangle.
+			indices.resize(vertexCount - vertexCount % 3);
+			for (size_t i = 0; i < indices.size(); ++i)
+				indices[i] = static_cast<uint32_t>(i);
+		}
+		if (indices.empty())
+			return;
 
-		GenerateTangents();
+		if (hasTexCoord0)
+			GenerateTangents();
+		else
+			GenerateTangentsFromNormals();
 		BuildMeshlets();
+	}
+
+	// Without UVs there is no texture-space direction to follow, so any tangent
+	// perpendicular to the normal will do (Duff et al. 2017, "Building an
+	// Orthonormal Basis, Revisited"). It only orients normal maps and
+	// anisotropy, neither of which means anything without UVs.
+	void Primitive::GenerateTangentsFromNormals()
+	{
+		const size_t vertexCount = GetVertexCount();
+		tangents.resize(vertexCount * 4);
+		for (size_t v = 0; v < vertexCount; ++v)
+		{
+			float nx = normals[v * 3 + 0];
+			float ny = normals[v * 3 + 1];
+			float nz = normals[v * 3 + 2];
+			const float length = std::sqrt(nx * nx + ny * ny + nz * nz);
+			if (length > 0.0f)
+			{
+				nx /= length;
+				ny /= length;
+				nz /= length;
+			}
+			else
+			{
+				nx = ny = 0.0f;
+				nz = 1.0f;
+			}
+
+			const float sign = std::copysign(1.0f, nz);
+			const float a = -1.0f / (sign + nz);
+			const float b = nx * ny * a;
+			tangents[v * 4 + 0] = 1.0f + sign * nx * nx * a;
+			tangents[v * 4 + 1] = sign * b;
+			tangents[v * 4 + 2] = -sign * nx;
+			tangents[v * 4 + 3] = 1.0f;
+		}
 	}
 
 	void Primitive::GenerateTangents()

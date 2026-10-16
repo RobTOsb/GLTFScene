@@ -36,6 +36,12 @@ namespace Scene
 			return positions.size() > 0 && texCoord0.size() > 0 && normals.size() > 0 && tangents.size() > 0;
 		}
 
+		// TEXCOORD_0 came from the file; otherwise every vertex has UV (0, 0).
+		bool HasTexCoord0() const
+		{
+			return hasTexCoord0;
+		}
+
 		int32_t GetMaterialIndex() const
 		{
 			return materialIndex;
@@ -100,6 +106,7 @@ namespace Scene
 
 	private:
 		void GenerateTangents();
+		void GenerateTangentsFromNormals();
 
 		std::vector<float> positions;
 		std::vector<float> texCoord0;
@@ -112,6 +119,7 @@ namespace Scene
 		std::vector<uint32_t> meshletTriangles;
 
 		int32_t materialIndex;
+		bool hasTexCoord0 = false;
 	};
 
 
