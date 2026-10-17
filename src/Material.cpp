@@ -59,6 +59,20 @@ namespace Scene
 			return false;
 		}
 
+		// Reads an RGB array from an extension's JSON object into out, leaving out as it is when absent.
+		void ExtensionColour(const tg3_material &material, const char *extension, const char *key, float out[3])
+		{
+			const tg3_value *colour = ExtensionValue(material, extension, key);
+			if (!colour || colour->type != TG3_VALUE_ARRAY)
+				return;
+			for (uint32_t c = 0; c < 3 && c < colour->array_count; ++c)
+			{
+				double value;
+				if (ToNumber(&colour->array_data[c], value))
+					out[c] = (float) value;
+			}
+		}
+
 		// The texture index of an extension's textureInfo member, -1 when absent.
 		int32_t ExtensionTexture(const tg3_material &material, const char *extension, const char *key)
 		{
@@ -78,6 +92,15 @@ namespace Scene
 		thinWalled = false;
 		diffuseTransmission = 0.0f;
 		diffuseTransmissionColour[0] = diffuseTransmissionColour[1] = diffuseTransmissionColour[2] = 1.0f;
+		anisotropyStrength = 0.0f;
+		anisotropyRotation = 0.0f;
+		subsurfaceWeight = 0.0f;
+		subsurfaceColour[0] = subsurfaceColour[1] = subsurfaceColour[2] = 0.8f;
+		subsurfaceRadius = 1.0f;
+		subsurfaceRadiusScale[0] = 1.0f;
+		subsurfaceRadiusScale[1] = 0.5f;
+		subsurfaceRadiusScale[2] = 0.25f;
+		subsurfaceScatterAnisotropy = 0.0f;
 		roughness = 1.0f;
 		metal = 1.0f;
 		normalScale = 1.0f;
@@ -115,18 +138,29 @@ namespace Scene
 													  "diffuseTransmissionFactor",
 													  0.0);
 		diffuseTransmissionColour[0] = diffuseTransmissionColour[1] = diffuseTransmissionColour[2] = 1.0f;
-		if (const tg3_value *colour = ExtensionValue(srcMaterial,
-													 "KHR_materials_diffuse_transmission",
-													 "diffuseTransmissionColorFactor");
-			colour && colour->type == TG3_VALUE_ARRAY)
-		{
-			for (uint32_t c = 0; c < 3 && c < colour->array_count; ++c)
-			{
-				double value;
-				if (ToNumber(&colour->array_data[c], value))
-					diffuseTransmissionColour[c] = (float) value;
-			}
-		}
+		ExtensionColour(srcMaterial,
+						"KHR_materials_diffuse_transmission",
+						"diffuseTransmissionColorFactor",
+						diffuseTransmissionColour);
+		// OpenPBR's defaults, except that the extension being there means a weight of 1.
+		const char *subsurface = "EXT_materials_subsurface";
+		subsurfaceWeight =
+				HasExtension(srcMaterial, subsurface)
+						? (float) ExtensionNumber(srcMaterial, subsurface, "subsurfaceWeight", 1.0)
+						: 0.0f;
+		subsurfaceColour[0] = subsurfaceColour[1] = subsurfaceColour[2] = 0.8f;
+		ExtensionColour(srcMaterial, subsurface, "subsurfaceColor", subsurfaceColour);
+		subsurfaceRadius = (float) ExtensionNumber(srcMaterial, subsurface, "subsurfaceRadius", 1.0);
+		subsurfaceRadiusScale[0] = 1.0f;
+		subsurfaceRadiusScale[1] = 0.5f;
+		subsurfaceRadiusScale[2] = 0.25f;
+		ExtensionColour(srcMaterial, subsurface, "subsurfaceRadiusScale", subsurfaceRadiusScale);
+		subsurfaceScatterAnisotropy =
+				(float) ExtensionNumber(srcMaterial, subsurface, "subsurfaceScatterAnisotropy", 0.0);
+		anisotropyStrength =
+				(float) ExtensionNumber(srcMaterial, "KHR_materials_anisotropy", "anisotropyStrength", 0.0);
+		anisotropyRotation =
+				(float) ExtensionNumber(srcMaterial, "KHR_materials_anisotropy", "anisotropyRotation", 0.0);
 		roughness = (float) pbr.roughness_factor;
 		metal = (float) pbr.metallic_factor;
 		normalScale = (float) srcMaterial.normal_texture.scale;
@@ -175,6 +209,21 @@ namespace Scene
 																"diffuseTransmissionColorTexture");
 			if (colourTextureIndex >= 0)
 				diffuseTransmissionColourTexture = LoadSharedTexture(model, gltfDir, colourTextureIndex, images);
+		}
+
+		// The texture's B channel multiplies the strength, so without strength it changes nothing.
+		const int32_t anisotropyTextureIndex =
+				ExtensionTexture(srcMaterial, "KHR_materials_anisotropy", "anisotropyTexture");
+		if (anisotropyTextureIndex >= 0 && anisotropyStrength > 0.0f)
+		{
+			anisotropyTexture = LoadSharedTexture(model, gltfDir, anisotropyTextureIndex, images);
+		}
+
+		const int32_t subsurfaceColourTextureIndex =
+				ExtensionTexture(srcMaterial, subsurface, "subsurfaceColorTexture");
+		if (subsurfaceColourTextureIndex >= 0 && subsurfaceWeight > 0.0f)
+		{
+			subsurfaceColourTexture = LoadSharedTexture(model, gltfDir, subsurfaceColourTextureIndex, images);
 		}
 	}
 
