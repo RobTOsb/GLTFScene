@@ -80,6 +80,22 @@ namespace Scene
 			double index;
 			return info && ToNumber(ObjectMember(*info, "index"), index) ? (int32_t) index : -1;
 		}
+
+		// An extension's "R", "G", "B" or "A" member as 0 to 3, fallback when absent or anything else.
+		uint32_t ExtensionChannel(const tg3_material &material, const char *extension, const char *key, uint32_t fallback)
+		{
+			const tg3_value *channel = ExtensionValue(material, extension, key);
+			if (!channel || channel->type != TG3_VALUE_STRING || channel->string_val.len != 1)
+				return fallback;
+			switch (channel->string_val.data[0])
+			{
+				case 'R': return 0;
+				case 'G': return 1;
+				case 'B': return 2;
+				case 'A': return 3;
+				default: return fallback;
+			}
+		}
 	} // namespace
 
 	Material::Material() : materialFactorsSet(false)
@@ -95,11 +111,12 @@ namespace Scene
 		anisotropyStrength = 0.0f;
 		anisotropyRotation = 0.0f;
 		subsurfaceWeight = 0.0f;
-		subsurfaceColour[0] = subsurfaceColour[1] = subsurfaceColour[2] = 0.8f;
-		subsurfaceRadius = 1.0f;
-		subsurfaceRadiusScale[0] = 1.0f;
-		subsurfaceRadiusScale[1] = 0.5f;
-		subsurfaceRadiusScale[2] = 0.25f;
+		subsurfaceWeightChannel = 0;
+		subsurfaceRadius[0] = 1.0f;
+		subsurfaceRadius[1] = 0.2f;
+		subsurfaceRadius[2] = 0.1f;
+		subsurfaceScale = 0.05f;
+		subsurfaceScaleChannel = 0;
 		subsurfaceScatterAnisotropy = 0.0f;
 		roughness = 1.0f;
 		metal = 1.0f;
@@ -142,21 +159,21 @@ namespace Scene
 						"KHR_materials_diffuse_transmission",
 						"diffuseTransmissionColorFactor",
 						diffuseTransmissionColour);
-		// OpenPBR's defaults, except that the extension being there means a weight of 1.
+		// Blender's Principled BSDF defaults, except that the extension being there means a weight of 1.
 		const char *subsurface = "EXT_materials_subsurface";
 		subsurfaceWeight =
 				HasExtension(srcMaterial, subsurface)
-						? (float) ExtensionNumber(srcMaterial, subsurface, "subsurfaceWeight", 1.0)
+						? (float) ExtensionNumber(srcMaterial, subsurface, "subsurfaceFactor", 1.0)
 						: 0.0f;
-		subsurfaceColour[0] = subsurfaceColour[1] = subsurfaceColour[2] = 0.8f;
-		ExtensionColour(srcMaterial, subsurface, "subsurfaceColor", subsurfaceColour);
-		subsurfaceRadius = (float) ExtensionNumber(srcMaterial, subsurface, "subsurfaceRadius", 1.0);
-		subsurfaceRadiusScale[0] = 1.0f;
-		subsurfaceRadiusScale[1] = 0.5f;
-		subsurfaceRadiusScale[2] = 0.25f;
-		ExtensionColour(srcMaterial, subsurface, "subsurfaceRadiusScale", subsurfaceRadiusScale);
+		subsurfaceWeightChannel = ExtensionChannel(srcMaterial, subsurface, "subsurfaceTextureChannel", 0);
+		subsurfaceRadius[0] = 1.0f;
+		subsurfaceRadius[1] = 0.2f;
+		subsurfaceRadius[2] = 0.1f;
+		ExtensionColour(srcMaterial, subsurface, "subsurfaceRadius", subsurfaceRadius);
+		subsurfaceScale = (float) ExtensionNumber(srcMaterial, subsurface, "subsurfaceScale", 0.05);
+		subsurfaceScaleChannel = ExtensionChannel(srcMaterial, subsurface, "subsurfaceScaleTextureChannel", 0);
 		subsurfaceScatterAnisotropy =
-				(float) ExtensionNumber(srcMaterial, subsurface, "subsurfaceScatterAnisotropy", 0.0);
+				(float) ExtensionNumber(srcMaterial, subsurface, "subsurfaceAnisotropy", 0.0);
 		anisotropyStrength =
 				(float) ExtensionNumber(srcMaterial, "KHR_materials_anisotropy", "anisotropyStrength", 0.0);
 		anisotropyRotation =
@@ -219,11 +236,18 @@ namespace Scene
 			anisotropyTexture = LoadSharedTexture(model, gltfDir, anisotropyTextureIndex, images);
 		}
 
-		const int32_t subsurfaceColourTextureIndex =
-				ExtensionTexture(srcMaterial, subsurface, "subsurfaceColorTexture");
-		if (subsurfaceColourTextureIndex >= 0 && subsurfaceWeight > 0.0f)
+		// Without weight the medium is not there for the textures to change.
+		if (subsurfaceWeight > 0.0f)
 		{
-			subsurfaceColourTexture = LoadSharedTexture(model, gltfDir, subsurfaceColourTextureIndex, images);
+			const int32_t weightTextureIndex = ExtensionTexture(srcMaterial, subsurface, "subsurfaceTexture");
+			if (weightTextureIndex >= 0)
+				subsurfaceWeightTexture = LoadSharedTexture(model, gltfDir, weightTextureIndex, images);
+			const int32_t radiusTextureIndex = ExtensionTexture(srcMaterial, subsurface, "subsurfaceRadiusTexture");
+			if (radiusTextureIndex >= 0)
+				subsurfaceRadiusTexture = LoadSharedTexture(model, gltfDir, radiusTextureIndex, images);
+			const int32_t scaleTextureIndex = ExtensionTexture(srcMaterial, subsurface, "subsurfaceScaleTexture");
+			if (scaleTextureIndex >= 0)
+				subsurfaceScaleTexture = LoadSharedTexture(model, gltfDir, scaleTextureIndex, images);
 		}
 	}
 

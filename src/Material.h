@@ -64,10 +64,22 @@ namespace Scene
 			return anisotropyTexture;
 		}
 
-		// EXT_materials_subsurface: sRGB, RGB multiplies the subsurface colour.
-		const Texture &GetSubsurfaceColourTexture() const
+		// EXT_materials_subsurface: linear, GetSubsurfaceWeightChannel multiplies the weight.
+		const Texture &GetSubsurfaceWeightTexture() const
 		{
-			return subsurfaceColourTexture;
+			return subsurfaceWeightTexture;
+		}
+
+		// EXT_materials_subsurface: linear, RGB multiplies the radius.
+		const Texture &GetSubsurfaceRadiusTexture() const
+		{
+			return subsurfaceRadiusTexture;
+		}
+
+		// EXT_materials_subsurface: linear, GetSubsurfaceScaleChannel multiplies the scale.
+		const Texture &GetSubsurfaceScaleTexture() const
+		{
+			return subsurfaceScaleTexture;
 		}
 
 		const float *GetBaseColour() const
@@ -128,28 +140,30 @@ namespace Scene
 			return anisotropyRotation;
 		}
 
-		// EXT_materials_subsurface (our own): OpenPBR's subsurface parameters for a solid object, a
-		// scattering medium under the surface. The weight is 0 when absent and 1 by default when present.
+		// EXT_materials_subsurface
 		float GetSubsurfaceWeight() const
 		{
 			return subsurfaceWeight;
 		}
 
-		// Linear RGB albedo the medium shows after multiple scattering (OpenPBR subsurface_color).
-		const float *GetSubsurfaceColour() const
+		uint32_t GetSubsurfaceWeightChannel() const
 		{
-			return subsurfaceColour;
+			return subsurfaceWeightChannel;
 		}
 
-		// Mean free path in scene units, multiplied per channel by GetSubsurfaceRadiusScale.
-		float GetSubsurfaceRadius() const
+		const float *GetSubsurfaceRadius() const
 		{
 			return subsurfaceRadius;
 		}
 
-		const float *GetSubsurfaceRadiusScale() const
+		float GetSubsurfaceScale() const
 		{
-			return subsurfaceRadiusScale;
+			return subsurfaceScale;
+		}
+
+		uint32_t GetSubsurfaceScaleChannel() const
+		{
+			return subsurfaceScaleChannel;
 		}
 
 		// Henyey-Greenstein phase function g, -1 back to 1 forward scattering.
@@ -208,9 +222,10 @@ namespace Scene
 		float anisotropyStrength;
 		float anisotropyRotation;
 		float subsurfaceWeight;
-		float subsurfaceColour[3];
-		float subsurfaceRadius;
-		float subsurfaceRadiusScale[3];
+		uint32_t subsurfaceWeightChannel;
+		float subsurfaceRadius[3];
+		float subsurfaceScale;
+		uint32_t subsurfaceScaleChannel;
 		float subsurfaceScatterAnisotropy;
 
 		// Will get packed on the gpu
@@ -230,6 +245,8 @@ namespace Scene
 		Texture diffuseTransmissionTexture;
 		Texture diffuseTransmissionColourTexture;
 		Texture anisotropyTexture;
-		Texture subsurfaceColourTexture;
+		Texture subsurfaceWeightTexture;
+		Texture subsurfaceRadiusTexture;
+		Texture subsurfaceScaleTexture;
 	};
 }; // namespace Scene

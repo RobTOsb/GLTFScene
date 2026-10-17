@@ -55,6 +55,21 @@ namespace Scene
 		out[2 * 4 + 3] = in[2 * 4 + 3];
 	}
 
+	// Composes two matrices in the ComposeTRS layout: out = local followed by parent, i.e.
+	// v * out = (v * local) * parent. out may alias neither input.
+	static void ComposeAffine(const float local[12], const float parent[12], float out[12])
+	{
+		for (int r = 0; r < 3; ++r)
+			for (int c = 0; c < 3; ++c)
+				out[r * 4 + c] = local[r * 4 + 0] * parent[0 * 4 + c] + local[r * 4 + 1] * parent[1 * 4 + c] +
+								 local[r * 4 + 2] * parent[2 * 4 + c];
+
+		// Translation is stored as the 4th column, t[c] = m[c * 4 + 3]: t = tLocal * parent3x3 + tParent.
+		for (int c = 0; c < 3; ++c)
+			out[c * 4 + 3] = local[0 * 4 + 3] * parent[0 * 4 + c] + local[1 * 4 + 3] * parent[1 * 4 + c] +
+							 local[2 * 4 + 3] * parent[2 * 4 + c] + parent[c * 4 + 3];
+	}
+
 	class alignas(64) Instance
 	{
 	public:
@@ -70,12 +85,27 @@ namespace Scene
 			return worldMatrix;
 		}
 
+		const float *GetLocalMatrix() const
+		{
+			return localMatrix;
+		}
+
+		// Sets the world matrix of this node's parent (glTF children inherit their parent's
+		// transform). Does not propagate to this node's own children.
+		void SetParentMatrix(const float parent[12])
+		{
+			for (int i = 0; i < 12; ++i)
+				parentMatrix[i] = parent[i];
+			UpdateWorldMatrix();
+		}
+
 		void SetTranslation(const float t[3])
 		{
 			translation[0] = t[0];
 			translation[1] = t[1];
 			translation[2] = t[2];
-			ComposeTRS(translation, rotation, scale, worldMatrix);
+			ComposeTRS(translation, rotation, scale, localMatrix);
+			UpdateWorldMatrix();
 		}
 
 		void SetRotation(const float q[4])
@@ -84,7 +114,8 @@ namespace Scene
 			rotation[1] = q[1];
 			rotation[2] = q[2];
 			rotation[3] = q[3];
-			ComposeTRS(translation, rotation, scale, worldMatrix);
+			ComposeTRS(translation, rotation, scale, localMatrix);
+			UpdateWorldMatrix();
 		}
 
 		void SetScale(const float s[3])
@@ -92,7 +123,13 @@ namespace Scene
 			scale[0] = s[0];
 			scale[1] = s[1];
 			scale[2] = s[2];
-			ComposeTRS(translation, rotation, scale, worldMatrix);
+			ComposeTRS(translation, rotation, scale, localMatrix);
+			UpdateWorldMatrix();
+		}
+
+		void UpdateWorldMatrix()
+		{
+			ComposeAffine(localMatrix, parentMatrix, worldMatrix);
 		}
 
 	private:
@@ -102,7 +139,9 @@ namespace Scene
 		float rotation[4];
 		float translation[3];
 		float scale[3];
-		float worldMatrix[12]; // float3x4
+		float localMatrix[12];	// float3x4, relative to the parent
+		float parentMatrix[12]; // float3x4, parent's world matrix (identity for root nodes)
+		float worldMatrix[12];	// float3x4, localMatrix composed with parentMatrix
 	};
 
 	static_assert(alignof(Instance) == 64, "scene node is not aligned to cache size.");

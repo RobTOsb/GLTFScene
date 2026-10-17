@@ -12,6 +12,53 @@ namespace Scene
 		return path.substr(0, slash + 1);
 	}
 
+	// glTF node transforms are relative to the parent node, so hand each node its parent's world
+	// matrix, top down from every node that is no other node's child.
+	static void PropagateTransforms(const tg3_model &model, std::vector<Instance> &nodes)
+	{
+		const size_t count = nodes.size();
+		std::vector<uint8_t> hasParent(count, 0);
+		for (size_t n = 0; n < count; ++n)
+		{
+			const tg3_node &srcNode = model.nodes[n];
+			for (uint32_t c = 0; c < srcNode.children_count; ++c)
+			{
+				const int32_t child = srcNode.children[c];
+				if (child >= 0 && (size_t) child < count)
+					hasParent[child] = 1;
+			}
+		}
+
+		// Iterative, as hierarchies can be deep. visited guards against malformed files with cycles.
+		std::vector<uint8_t> visited(count, 0);
+		std::vector<int32_t> stack;
+		for (size_t root = 0; root < count; ++root)
+		{
+			if (hasParent[root])
+				continue;
+
+			visited[root] = 1;
+			stack.push_back((int32_t) root);
+			while (!stack.empty())
+			{
+				const int32_t n = stack.back();
+				stack.pop_back();
+
+				const tg3_node &srcNode = model.nodes[n];
+				for (uint32_t c = 0; c < srcNode.children_count; ++c)
+				{
+					const int32_t child = srcNode.children[c];
+					if (child < 0 || (size_t) child >= count || visited[child])
+						continue;
+
+					visited[child] = 1;
+					nodes[child].SetParentMatrix(nodes[n].GetWorldMatrix());
+					stack.push_back(child);
+				}
+			}
+		}
+	}
+
 	SceneError GLTFScene::MakeGLTFScene(const char *filename,
 										GLTFScene &scene,
 										ProgressCallback onProgress,
@@ -97,6 +144,8 @@ namespace Scene
 			scene.nodes.emplace_back(srcNode.mesh, std::move(nodeName), srcNode);
 		}
 		itemsDone += model.nodes_count;
+
+		PropagateTransforms(model, scene.nodes);
 
 		tg3_model_free(&model);
 		tg3_error_stack_free(&errors);

@@ -18,8 +18,8 @@ namespace Scene
 			for (int r = 0; r < 3; ++r)
 			{
 				for (int c = 0; c < 3; ++c)
-					worldMatrix[r * 4 + c] = (float) srcNode.matrix[r * 4 + c];
-				worldMatrix[r * 4 + 3] = (float) srcNode.matrix[12 + r];
+					localMatrix[r * 4 + c] = (float) srcNode.matrix[r * 4 + c];
+				localMatrix[r * 4 + 3] = (float) srcNode.matrix[12 + r];
 			}
 
 			translation[0] = translation[1] = translation[2] = 0.0f;
@@ -42,7 +42,11 @@ namespace Scene
 			scale[1] = (float) srcNode.scale[1];
 			scale[2] = (float) srcNode.scale[2];
 
-			ComposeTRS(translation, rotation, scale, worldMatrix);
+			ComposeTRS(translation, rotation, scale, localMatrix);
 		}
+
+		// Root until GLTFScene walks the hierarchy and hands down the parent's world matrix.
+		static const float identity[12] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0 };
+		SetParentMatrix(identity);
 	}
 }; // namespace Scene
