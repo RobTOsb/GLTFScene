@@ -14,6 +14,20 @@ namespace Scene
 		Mask = 1,
 		Blend = 2,
 	};
+.
+	struct UVTransform
+	{
+		int32_t texCoord = 0;
+		float m[6] = { 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f };
+		bool consistent = true;
+
+		bool IsIdentity() const
+		{
+			return m[0] == 1.0f && m[1] == 0.0f && m[2] == 0.0f && m[3] == 1.0f && m[4] == 0.0f && m[5] == 0.0f;
+		}
+	};
+
+	UVTransform ReadUVTransform(const tg3_model &model, int32_t materialIndex);
 
 	class Material
 	{

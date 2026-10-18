@@ -1,6 +1,7 @@
 #include "Primitive.h"
 
 #include <cmath>
+#include <cstdio>
 #include <utility>
 
 #include "meshoptimizer.h"
@@ -155,14 +156,35 @@ namespace Scene
 			return;
 		}
 
-		int32_t uvAccessor = FindAttribute(prim, "TEXCOORD_0");
+		// The material's UV set and KHR_texture_transform, baked in here so the renderer needs neither.
+		// Before the tangents, which then follow the transformed UVs as normal maps expect.
+		const UVTransform uvTransform = ReadUVTransform(model, prim.material);
+		char uvName[32];
+		snprintf(uvName, sizeof(uvName), "TEXCOORD_%d", uvTransform.texCoord);
+		int32_t uvAccessor = FindAttribute(prim, uvName);
+		if (uvAccessor < 0 && uvTransform.texCoord != 0)
+		{
+			fprintf(stderr, "Primitive has no %s for its material, using TEXCOORD_0\n", uvName);
+			uvAccessor = FindAttribute(prim, "TEXCOORD_0");
+		}
 		hasTexCoord0 = uvAccessor >= 0 && ReadAccessorAsFloat(model, uvAccessor, 2, texCoord0) &&
 					   texCoord0.size() == vertexCount * 2;
 		if (!hasTexCoord0)
 		{
 			if (uvAccessor >= 0)
-				fprintf(stderr, "Primitive has an invalid TEXCOORD_0 attribute, using UV (0, 0)\n");
+				fprintf(stderr, "Primitive has an invalid TEXCOORD attribute, using UV (0, 0)\n");
 			texCoord0.assign(vertexCount * 2, 0.0f);
+		}
+		else if (!uvTransform.IsIdentity())
+		{
+			const float *m = uvTransform.m;
+			for (size_t v = 0; v < vertexCount; ++v)
+			{
+				const float u = texCoord0[v * 2 + 0];
+				const float w = texCoord0[v * 2 + 1];
+				texCoord0[v * 2 + 0] = m[0] * u + m[2] * w + m[4];
+				texCoord0[v * 2 + 1] = m[1] * u + m[3] * w + m[5];
+			}
 		}
 
 		if (prim.indices >= 0)

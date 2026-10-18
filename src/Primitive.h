@@ -36,7 +36,7 @@ namespace Scene
 			return positions.size() > 0 && texCoord0.size() > 0 && normals.size() > 0 && tangents.size() > 0;
 		}
 
-		// TEXCOORD_0 came from the file; otherwise every vertex has UV (0, 0).
+		// The material's UV set came from the file; otherwise every vertex has UV (0, 0).
 		bool HasTexCoord0() const
 		{
 			return hasTexCoord0;
@@ -67,6 +67,8 @@ namespace Scene
 			return positions;
 		}
 
+		// The UV set the material's textures use (TEXCOORD_0 unless KHR_texture_transform or the
+		// textureInfo picks another), with its KHR_texture_transform applied (see UVTransform).
 		const std::vector<float> &GetTexCoord0() const
 		{
 			return texCoord0;

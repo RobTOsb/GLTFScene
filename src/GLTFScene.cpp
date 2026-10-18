@@ -127,6 +127,11 @@ namespace Scene
 		{
 			weightedProgress((uint32_t) m, "Materials");
 			scene.materials.emplace_back(model, gltfDir.c_str(), model.materials[m], images);
+			// The primitives baked the first texture's mapping into their UVs (Primitive's constructor).
+			if (!ReadUVTransform(model, (int32_t) m).consistent)
+				fprintf(stderr,
+						"Material %zu's textures use different UV sets or KHR_texture_transforms, all get the first one's\n",
+						m);
 		}
 		itemsDone += model.materials_count;
 
