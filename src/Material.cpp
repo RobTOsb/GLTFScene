@@ -198,6 +198,9 @@ namespace Scene
 			{ "KHR_materials_anisotropy", "anisotropyTexture" },
 			{ "KHR_materials_sheen", "sheenColorTexture" },
 			{ "KHR_materials_sheen", "sheenRoughnessTexture" },
+			{ "KHR_materials_clearcoat", "clearcoatTexture" },
+			{ "KHR_materials_clearcoat", "clearcoatRoughnessTexture" },
+			{ "KHR_materials_clearcoat", "clearcoatNormalTexture" },
 			{ "EXT_materials_subsurface", "subsurfaceTexture" },
 			{ "EXT_materials_subsurface", "subsurfaceRadiusTexture" },
 			{ "EXT_materials_subsurface", "subsurfaceScaleTexture" },
@@ -230,6 +233,9 @@ namespace Scene
 		anisotropyRotation = 0.0f;
 		sheenColour[0] = sheenColour[1] = sheenColour[2] = 0.0f;
 		sheenRoughness = 0.0f;
+		clearcoat = 0.0f;
+		clearcoatRoughness = 0.0f;
+		clearcoatNormalScale = 1.0f;
 		subsurfaceWeight = 0.0f;
 		subsurfaceWeightChannel = 0;
 		subsurfaceRadius[0] = 1.0f;
@@ -292,6 +298,16 @@ namespace Scene
 		sheenColour[0] = sheenColour[1] = sheenColour[2] = 0.0f;
 		ExtensionColour(srcMaterial, "KHR_materials_sheen", "sheenColorFactor", sheenColour);
 		sheenRoughness = (float) ExtensionNumber(srcMaterial, "KHR_materials_sheen", "sheenRoughnessFactor", 0.0);
+		const char *clearcoatExtension = "KHR_materials_clearcoat";
+		clearcoat = (float) ExtensionNumber(srcMaterial, clearcoatExtension, "clearcoatFactor", 0.0);
+		clearcoatRoughness = (float) ExtensionNumber(srcMaterial, clearcoatExtension, "clearcoatRoughnessFactor", 0.0);
+		clearcoatNormalScale = 1.0f;
+		if (const tg3_value *info = ExtensionValue(srcMaterial, clearcoatExtension, "clearcoatNormalTexture"))
+		{
+			double scale;
+			if (ToNumber(ObjectMember(*info, "scale"), scale))
+				clearcoatNormalScale = (float) scale;
+		}
 		roughness = (float) pbr.roughness_factor;
 		metal = (float) pbr.metallic_factor;
 		normalScale = (float) srcMaterial.normal_texture.scale;
@@ -347,6 +363,23 @@ namespace Scene
 					ExtensionTexture(srcMaterial, "KHR_materials_sheen", "sheenRoughnessTexture");
 			if (roughnessTextureIndex >= 0)
 				sheenRoughnessTexture = LoadSharedTexture(model, gltfDir, roughnessTextureIndex, images);
+		}
+
+		// A zero clearcoat factor turns the coat off, whatever the textures hold, and a zero roughness factor
+		// keeps it smooth.
+		if (HasClearcoat())
+		{
+			const int32_t weightTextureIndex = ExtensionTexture(srcMaterial, clearcoatExtension, "clearcoatTexture");
+			if (weightTextureIndex >= 0)
+				clearcoatTexture = LoadSharedTexture(model, gltfDir, weightTextureIndex, images);
+			const int32_t roughnessTextureIndex =
+					ExtensionTexture(srcMaterial, clearcoatExtension, "clearcoatRoughnessTexture");
+			if (roughnessTextureIndex >= 0 && clearcoatRoughness > 0.0f)
+				clearcoatRoughnessTexture = LoadSharedTexture(model, gltfDir, roughnessTextureIndex, images);
+			const int32_t normalTextureIndex =
+					ExtensionTexture(srcMaterial, clearcoatExtension, "clearcoatNormalTexture");
+			if (normalTextureIndex >= 0)
+				clearcoatNormalTexture = LoadSharedTexture(model, gltfDir, normalTextureIndex, images);
 		}
 
 		// Without weight the medium is not there for the textures to change. A thin wall has no medium,

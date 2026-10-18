@@ -78,6 +78,25 @@ namespace Scene
 			return sheenRoughnessTexture;
 		}
 
+		// KHR_materials_clearcoat: linear, R multiplies the clearcoat factor.
+		const Texture &GetClearcoatTexture() const
+		{
+			return clearcoatTexture;
+		}
+
+		// KHR_materials_clearcoat: linear, G multiplies the clearcoat roughness.
+		const Texture &GetClearcoatRoughnessTexture() const
+		{
+			return clearcoatRoughnessTexture;
+		}
+
+		// KHR_materials_clearcoat: tangent-space normal map of the coat. Without one the coat follows the
+		// vertex normal, not the base's normal map.
+		const Texture &GetClearcoatNormalTexture() const
+		{
+			return clearcoatNormalTexture;
+		}
+
 		// EXT_materials_subsurface: linear, GetSubsurfaceWeightChannel multiplies the weight.
 		const Texture &GetSubsurfaceWeightTexture() const
 		{
@@ -156,6 +175,29 @@ namespace Scene
 		bool HasSheen() const
 		{
 			return sheenColour[0] > 0.0f || sheenColour[1] > 0.0f || sheenColour[2] > 0.0f;
+		}
+
+		// KHR_materials_clearcoat factor, 0 (no coat) when absent.
+		float GetClearcoat() const
+		{
+			return clearcoat;
+		}
+
+		// KHR_materials_clearcoat roughness factor, 0 when absent.
+		float GetClearcoatRoughness() const
+		{
+			return clearcoatRoughness;
+		}
+
+		// KHR_materials_clearcoat normal texture's scale, 1 when absent.
+		float GetClearcoatNormalScale() const
+		{
+			return clearcoatNormalScale;
+		}
+
+		bool HasClearcoat() const
+		{
+			return clearcoat > 0.0f;
 		}
 
 		// EXT_materials_subsurface
@@ -240,6 +282,9 @@ namespace Scene
 		float anisotropyRotation;
 		float sheenColour[3];
 		float sheenRoughness;
+		float clearcoat;
+		float clearcoatRoughness;
+		float clearcoatNormalScale;
 		float subsurfaceWeight;
 		uint32_t subsurfaceWeightChannel;
 		float subsurfaceRadius[3];
@@ -264,6 +309,9 @@ namespace Scene
 		Texture anisotropyTexture;
 		Texture sheenColourTexture;
 		Texture sheenRoughnessTexture;
+		Texture clearcoatTexture;
+		Texture clearcoatRoughnessTexture;
+		Texture clearcoatNormalTexture;
 		Texture subsurfaceWeightTexture;
 		Texture subsurfaceRadiusTexture;
 		Texture subsurfaceScaleTexture;
