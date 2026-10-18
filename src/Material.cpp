@@ -106,10 +106,10 @@ namespace Scene
 		transmission = 0.0f;
 		ior = 1.5f;
 		thinWalled = false;
-		diffuseTransmission = 0.0f;
-		diffuseTransmissionColour[0] = diffuseTransmissionColour[1] = diffuseTransmissionColour[2] = 1.0f;
 		anisotropyStrength = 0.0f;
 		anisotropyRotation = 0.0f;
+		sheenColour[0] = sheenColour[1] = sheenColour[2] = 0.0f;
+		sheenRoughness = 0.0f;
 		subsurfaceWeight = 0.0f;
 		subsurfaceWeightChannel = 0;
 		subsurfaceRadius[0] = 1.0f;
@@ -150,15 +150,6 @@ namespace Scene
 		if (const tg3_value *flag = ExtensionValue(srcMaterial, "EXT_materials_thin_wall", "thinWalled");
 			flag && flag->type == TG3_VALUE_BOOL)
 			thinWalled = flag->bool_val != 0;
-		diffuseTransmission = (float) ExtensionNumber(srcMaterial,
-													  "KHR_materials_diffuse_transmission",
-													  "diffuseTransmissionFactor",
-													  0.0);
-		diffuseTransmissionColour[0] = diffuseTransmissionColour[1] = diffuseTransmissionColour[2] = 1.0f;
-		ExtensionColour(srcMaterial,
-						"KHR_materials_diffuse_transmission",
-						"diffuseTransmissionColorFactor",
-						diffuseTransmissionColour);
 		// Blender's Principled BSDF defaults, except that the extension being there means a weight of 1.
 		const char *subsurface = "EXT_materials_subsurface";
 		subsurfaceWeight =
@@ -178,6 +169,9 @@ namespace Scene
 				(float) ExtensionNumber(srcMaterial, "KHR_materials_anisotropy", "anisotropyStrength", 0.0);
 		anisotropyRotation =
 				(float) ExtensionNumber(srcMaterial, "KHR_materials_anisotropy", "anisotropyRotation", 0.0);
+		sheenColour[0] = sheenColour[1] = sheenColour[2] = 0.0f;
+		ExtensionColour(srcMaterial, "KHR_materials_sheen", "sheenColorFactor", sheenColour);
+		sheenRoughness = (float) ExtensionNumber(srcMaterial, "KHR_materials_sheen", "sheenRoughnessFactor", 0.0);
 		roughness = (float) pbr.roughness_factor;
 		metal = (float) pbr.metallic_factor;
 		normalScale = (float) srcMaterial.normal_texture.scale;
@@ -215,19 +209,6 @@ namespace Scene
 			transmissionTexture = LoadSharedTexture(model, gltfDir, transmissionTextureIndex, images);
 		}
 
-		if (diffuseTransmission > 0.0f)
-		{
-			const int32_t factorTextureIndex =
-					ExtensionTexture(srcMaterial, "KHR_materials_diffuse_transmission", "diffuseTransmissionTexture");
-			if (factorTextureIndex >= 0)
-				diffuseTransmissionTexture = LoadSharedTexture(model, gltfDir, factorTextureIndex, images);
-			const int32_t colourTextureIndex = ExtensionTexture(srcMaterial,
-																"KHR_materials_diffuse_transmission",
-																"diffuseTransmissionColorTexture");
-			if (colourTextureIndex >= 0)
-				diffuseTransmissionColourTexture = LoadSharedTexture(model, gltfDir, colourTextureIndex, images);
-		}
-
 		// The texture's B channel multiplies the strength, so without strength it changes nothing.
 		const int32_t anisotropyTextureIndex =
 				ExtensionTexture(srcMaterial, "KHR_materials_anisotropy", "anisotropyTexture");
@@ -236,12 +217,28 @@ namespace Scene
 			anisotropyTexture = LoadSharedTexture(model, gltfDir, anisotropyTextureIndex, images);
 		}
 
-		// Without weight the medium is not there for the textures to change.
+		// A black sheen colour factor turns the sheen off, whatever the textures hold.
+		if (HasSheen())
+		{
+			const int32_t colourTextureIndex = ExtensionTexture(srcMaterial, "KHR_materials_sheen", "sheenColorTexture");
+			if (colourTextureIndex >= 0)
+				sheenColourTexture = LoadSharedTexture(model, gltfDir, colourTextureIndex, images);
+			const int32_t roughnessTextureIndex =
+					ExtensionTexture(srcMaterial, "KHR_materials_sheen", "sheenRoughnessTexture");
+			if (roughnessTextureIndex >= 0)
+				sheenRoughnessTexture = LoadSharedTexture(model, gltfDir, roughnessTextureIndex, images);
+		}
+
+		// Without weight the medium is not there for the textures to change. A thin wall has no medium,
+		// so no radius either.
 		if (subsurfaceWeight > 0.0f)
 		{
 			const int32_t weightTextureIndex = ExtensionTexture(srcMaterial, subsurface, "subsurfaceTexture");
 			if (weightTextureIndex >= 0)
 				subsurfaceWeightTexture = LoadSharedTexture(model, gltfDir, weightTextureIndex, images);
+		}
+		if (subsurfaceWeight > 0.0f && !thinWalled)
+		{
 			const int32_t radiusTextureIndex = ExtensionTexture(srcMaterial, subsurface, "subsurfaceRadiusTexture");
 			if (radiusTextureIndex >= 0)
 				subsurfaceRadiusTexture = LoadSharedTexture(model, gltfDir, radiusTextureIndex, images);

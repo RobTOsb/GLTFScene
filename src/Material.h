@@ -46,22 +46,22 @@ namespace Scene
 			return transmissionTexture;
 		}
 
-		// KHR_materials_diffuse_transmission: A multiplies the factor.
-		const Texture &GetDiffuseTransmissionTexture() const
-		{
-			return diffuseTransmissionTexture;
-		}
-
-		// KHR_materials_diffuse_transmission: sRGB, RGB multiplies the colour factor.
-		const Texture &GetDiffuseTransmissionColourTexture() const
-		{
-			return diffuseTransmissionColourTexture;
-		}
-
 		// KHR_materials_anisotropy: linear, RG = direction in tangent space (* 2 - 1), B multiplies the strength.
 		const Texture &GetAnisotropyTexture() const
 		{
 			return anisotropyTexture;
+		}
+
+		// KHR_materials_sheen: sRGB, RGB multiplies the sheen colour.
+		const Texture &GetSheenColourTexture() const
+		{
+			return sheenColourTexture;
+		}
+
+		// KHR_materials_sheen: linear, A multiplies the sheen roughness.
+		const Texture &GetSheenRoughnessTexture() const
+		{
+			return sheenRoughnessTexture;
 		}
 
 		// EXT_materials_subsurface: linear, GetSubsurfaceWeightChannel multiplies the weight.
@@ -115,19 +115,6 @@ namespace Scene
 			return thinWalled;
 		}
 
-		// KHR_materials_diffuse_transmission factor: the share of the diffuse base that is transmitted
-		// rather than reflected, 0 when absent.
-		float GetDiffuseTransmission() const
-		{
-			return diffuseTransmission;
-		}
-
-		// KHR_materials_diffuse_transmission colour factor, linear RGB, white when absent.
-		const float *GetDiffuseTransmissionColour() const
-		{
-			return diffuseTransmissionColour;
-		}
-
 		// KHR_materials_anisotropy strength, 0 (isotropic) when absent.
 		float GetAnisotropyStrength() const
 		{
@@ -138,6 +125,23 @@ namespace Scene
 		float GetAnisotropyRotation() const
 		{
 			return anisotropyRotation;
+		}
+
+		// KHR_materials_sheen colour factor, linear RGB, black (no sheen) when absent.
+		const float *GetSheenColour() const
+		{
+			return sheenColour;
+		}
+
+		// KHR_materials_sheen roughness factor, 0 when absent.
+		float GetSheenRoughness() const
+		{
+			return sheenRoughness;
+		}
+
+		bool HasSheen() const
+		{
+			return sheenColour[0] > 0.0f || sheenColour[1] > 0.0f || sheenColour[2] > 0.0f;
 		}
 
 		// EXT_materials_subsurface
@@ -166,7 +170,8 @@ namespace Scene
 			return subsurfaceScaleChannel;
 		}
 
-		// Henyey-Greenstein phase function g, -1 back to 1 forward scattering.
+		// Solid: the medium's Henyey-Greenstein phase function g, -1 back to 1 forward scattering.
+		// Thin-walled: (1 - g) / 2 of the subsurface is reflected and (1 + g) / 2 transmitted.
 		float GetSubsurfaceScatterAnisotropy() const
 		{
 			return subsurfaceScatterAnisotropy;
@@ -217,10 +222,10 @@ namespace Scene
 		float transmission;
 		float ior;
 		bool thinWalled;
-		float diffuseTransmission;
-		float diffuseTransmissionColour[3];
 		float anisotropyStrength;
 		float anisotropyRotation;
+		float sheenColour[3];
+		float sheenRoughness;
 		float subsurfaceWeight;
 		uint32_t subsurfaceWeightChannel;
 		float subsurfaceRadius[3];
@@ -242,9 +247,9 @@ namespace Scene
 		Texture normalTexture;
 		Texture emissiveTexture;
 		Texture transmissionTexture;
-		Texture diffuseTransmissionTexture;
-		Texture diffuseTransmissionColourTexture;
 		Texture anisotropyTexture;
+		Texture sheenColourTexture;
+		Texture sheenRoughnessTexture;
 		Texture subsurfaceWeightTexture;
 		Texture subsurfaceRadiusTexture;
 		Texture subsurfaceScaleTexture;
