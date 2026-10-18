@@ -14,7 +14,7 @@ namespace Scene
 		Mask = 1,
 		Blend = 2,
 	};
-.
+	
 	struct UVTransform
 	{
 		int32_t texCoord = 0;
