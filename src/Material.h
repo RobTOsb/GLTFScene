@@ -72,6 +72,18 @@ namespace Scene
 			return sheenColourTexture;
 		}
 
+		// KHR_materials_specular: linear, A multiplies the specular factor.
+		const Texture &GetSpecularTexture() const
+		{
+			return specularTexture;
+		}
+
+		// KHR_materials_specular: sRGB, RGB multiplies the specular colour.
+		const Texture &GetSpecularColourTexture() const
+		{
+			return specularColourTexture;
+		}
+
 		// KHR_materials_sheen: linear, A multiplies the sheen roughness.
 		const Texture &GetSheenRoughnessTexture() const
 		{
@@ -139,6 +151,32 @@ namespace Scene
 		float GetIor() const
 		{
 			return ior;
+		}
+
+		// KHR_materials_specular factor, scales the dielectric F0, 1 when absent.
+		float GetSpecular() const
+		{
+			return specular;
+		}
+
+		// KHR_materials_specular colour factor, linear RGB that tints the dielectric F0 and may exceed 1,
+		// white when absent.
+		const float *GetSpecularColour() const
+		{
+			return specularColour;
+		}
+
+		// KHR_materials_volume: white light inside the volume comes out as this colour after
+		// GetAttenuationDistance, linear RGB, white when absent.
+		const float *GetAttenuationColour() const
+		{
+			return attenuationColour;
+		}
+
+		// KHR_materials_volume, infinite (no absorption) when absent or not positive.
+		float GetAttenuationDistance() const
+		{
+			return attenuationDistance;
 		}
 
 		// Both sides are outside: light crosses without refracting or entering a medium. Set by the
@@ -277,6 +315,10 @@ namespace Scene
 		float alphaCutoff;
 		float transmission;
 		float ior;
+		float specular;
+		float specularColour[3];
+		float attenuationColour[3];
+		float attenuationDistance;
 		bool thinWalled;
 		float anisotropyStrength;
 		float anisotropyRotation;
@@ -307,6 +349,8 @@ namespace Scene
 		Texture emissiveTexture;
 		Texture transmissionTexture;
 		Texture anisotropyTexture;
+		Texture specularTexture;
+		Texture specularColourTexture;
 		Texture sheenColourTexture;
 		Texture sheenRoughnessTexture;
 		Texture clearcoatTexture;

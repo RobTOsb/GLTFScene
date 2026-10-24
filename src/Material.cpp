@@ -1,6 +1,7 @@
 #include "Material.h"
 
 #include <cmath>
+#include <limits>
 
 #include "tiny_gltf_v3.h"
 
@@ -196,6 +197,8 @@ namespace Scene
 		static const char *const kExtensionTextures[][2] = {
 			{ "KHR_materials_transmission", "transmissionTexture" },
 			{ "KHR_materials_anisotropy", "anisotropyTexture" },
+			{ "KHR_materials_specular", "specularTexture" },
+			{ "KHR_materials_specular", "specularColorTexture" },
 			{ "KHR_materials_sheen", "sheenColorTexture" },
 			{ "KHR_materials_sheen", "sheenRoughnessTexture" },
 			{ "KHR_materials_clearcoat", "clearcoatTexture" },
@@ -228,6 +231,10 @@ namespace Scene
 		alphaCutoff = 0.5f;
 		transmission = 0.0f;
 		ior = 1.5f;
+		specular = 1.0f;
+		specularColour[0] = specularColour[1] = specularColour[2] = 1.0f;
+		attenuationColour[0] = attenuationColour[1] = attenuationColour[2] = 1.0f;
+		attenuationDistance = std::numeric_limits<float>::infinity();
 		thinWalled = false;
 		anisotropyStrength = 0.0f;
 		anisotropyRotation = 0.0f;
@@ -271,6 +278,17 @@ namespace Scene
 		alphaCutoff = (float) srcMaterial.alpha_cutoff;
 		transmission = (float) ExtensionNumber(srcMaterial, "KHR_materials_transmission", "transmissionFactor", 0.0);
 		ior = (float) ExtensionNumber(srcMaterial, "KHR_materials_ior", "ior", 1.5);
+		specular = (float) ExtensionNumber(srcMaterial, "KHR_materials_specular", "specularFactor", 1.0);
+		specularColour[0] = specularColour[1] = specularColour[2] = 1.0f;
+		ExtensionColour(srcMaterial, "KHR_materials_specular", "specularColorFactor", specularColour);
+		attenuationColour[0] = attenuationColour[1] = attenuationColour[2] = 1.0f;
+		ExtensionColour(srcMaterial, "KHR_materials_volume", "attenuationColor", attenuationColour);
+		attenuationDistance = (float) ExtensionNumber(srcMaterial,
+													  "KHR_materials_volume",
+													  "attenuationDistance",
+													  std::numeric_limits<double>::infinity());
+		if (!(attenuationDistance > 0.0f))
+			attenuationDistance = std::numeric_limits<float>::infinity();
 		// Present means thin-walled unless it says "thinWalled": false.
 		thinWalled = HasExtension(srcMaterial, "EXT_materials_thin_wall");
 		if (const tg3_value *flag = ExtensionValue(srcMaterial, "EXT_materials_thin_wall", "thinWalled");
@@ -351,6 +369,18 @@ namespace Scene
 		if (anisotropyTextureIndex >= 0 && anisotropyStrength > 0.0f)
 		{
 			anisotropyTexture = LoadSharedTexture(model, gltfDir, anisotropyTextureIndex, images);
+		}
+
+		// Both textures multiply the factors, so a zero specular factor leaves nothing for them to change.
+		if (specular > 0.0f)
+		{
+			const int32_t weightTextureIndex = ExtensionTexture(srcMaterial, "KHR_materials_specular", "specularTexture");
+			if (weightTextureIndex >= 0)
+				specularTexture = LoadSharedTexture(model, gltfDir, weightTextureIndex, images);
+			const int32_t colourTextureIndex =
+					ExtensionTexture(srcMaterial, "KHR_materials_specular", "specularColorTexture");
+			if (colourTextureIndex >= 0)
+				specularColourTexture = LoadSharedTexture(model, gltfDir, colourTextureIndex, images);
 		}
 
 		// A black sheen colour factor turns the sheen off, whatever the textures hold.
