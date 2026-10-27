@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "Animation.h"
 #include "Instance.h"
 #include "Material.h"
 #include "Mesh.h"
@@ -42,6 +43,19 @@ namespace Scene
 		const Instance &GetInstance(size_t index) const
 		{
 			return nodes[index];
+		}
+		// The node whose child a node is, or -1 for a root.
+		int32_t GetParentIndex(size_t index) const
+		{
+			return parents[index];
+		}
+		const Animation &GetAnimation(size_t index) const
+		{
+			return animations[index];
+		}
+		size_t GetAnimationCount() const
+		{
+			return animations.size();
 		}
 		size_t GetMeshCount() const
 		{
@@ -125,6 +139,8 @@ namespace Scene
 		std::vector<Mesh> meshes;
 		std::vector<Material> materials;
 		std::vector<Instance> nodes;
+		std::vector<int32_t> parents; // per node
+		std::vector<Animation> animations;
 	};
 
 

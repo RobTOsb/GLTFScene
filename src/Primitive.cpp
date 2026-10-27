@@ -1,5 +1,6 @@
 #include "Primitive.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <utility>
@@ -58,6 +59,13 @@ namespace Scene
 						break;
 					case TG3_COMPONENT_TYPE_UNSIGNED_SHORT:
 						value = *reinterpret_cast<const uint16_t *>(compPtr) / 65535.0f;
+						break;
+					// Signed normalised, as animated rotations may be.
+					case TG3_COMPONENT_TYPE_BYTE:
+						value = std::max(*reinterpret_cast<const int8_t *>(compPtr) / 127.0f, -1.0f);
+						break;
+					case TG3_COMPONENT_TYPE_SHORT:
+						value = std::max(*reinterpret_cast<const int16_t *>(compPtr) / 32767.0f, -1.0f);
 						break;
 					default:
 						return false;

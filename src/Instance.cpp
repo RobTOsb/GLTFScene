@@ -5,7 +5,7 @@
 namespace Scene
 {
 	Instance::Instance(int32_t meshIndex, std::string name, const tg3_node &srcNode) :
-		meshIndex(meshIndex), name(std::move(name))
+		name(std::move(name)), meshIndex(meshIndex), hasMatrix(srcNode.has_matrix != 0)
 	{
 		if (srcNode.has_matrix)
 		{

@@ -13,10 +13,11 @@ namespace Scene
 	}
 
 	// glTF node transforms are relative to the parent node, so hand each node its parent's world
-	// matrix, top down from every node that is no other node's child.
-	static void PropagateTransforms(const tg3_model &model, std::vector<Instance> &nodes)
+	// matrix, top down from every node that is no other node's child. Also fills each node's parent.
+	static void PropagateTransforms(const tg3_model &model, std::vector<Instance> &nodes, std::vector<int32_t> &parents)
 	{
 		const size_t count = nodes.size();
+		parents.assign(count, -1);
 		std::vector<uint8_t> hasParent(count, 0);
 		for (size_t n = 0; n < count; ++n)
 		{
@@ -52,6 +53,7 @@ namespace Scene
 						continue;
 
 					visited[child] = 1;
+					parents[child] = n;
 					nodes[child].SetParentMatrix(nodes[n].GetWorldMatrix());
 					stack.push_back(child);
 				}
@@ -150,7 +152,15 @@ namespace Scene
 		}
 		itemsDone += model.nodes_count;
 
-		PropagateTransforms(model, scene.nodes);
+		PropagateTransforms(model, scene.nodes, scene.parents);
+
+		scene.animations.clear();
+		scene.animations.reserve(model.animations_count);
+		for (size_t a = 0; a < model.animations_count; ++a)
+			scene.animations.emplace_back(model, model.animations[a]);
+		if (model.skins_count > 0)
+			fprintf(stderr, "%u skin(s) ignored: skinning is not supported, so skinned meshes stay in their bind pose\n",
+					model.skins_count);
 
 		tg3_model_free(&model);
 		tg3_error_stack_free(&errors);

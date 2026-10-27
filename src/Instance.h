@@ -90,6 +90,38 @@ namespace Scene
 			return localMatrix;
 		}
 
+		const float *GetParentMatrix() const
+		{
+			return parentMatrix;
+		}
+
+		// The local transform's parts, identity for a node given as a matrix.
+		const float *GetTranslation() const
+		{
+			return translation;
+		}
+
+		const float *GetRotation() const
+		{
+			return rotation;
+		}
+
+		const float *GetScale() const
+		{
+			return scale;
+		}
+
+		// The node gave its local transform as a matrix, which animations cannot target.
+		bool HasMatrix() const
+		{
+			return hasMatrix;
+		}
+
+		const std::string &GetName() const
+		{
+			return name;
+		}
+
 		// Sets the world matrix of this node's parent (glTF children inherit their parent's
 		// transform). Does not propagate to this node's own children.
 		void SetParentMatrix(const float parent[12])
@@ -135,6 +167,7 @@ namespace Scene
 	private:
 		std::string name;
 		int32_t meshIndex;
+		bool hasMatrix;
 
 		float rotation[4];
 		float translation[3];

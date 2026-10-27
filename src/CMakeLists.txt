@@ -1,4 +1,5 @@
 add_library(GLTFScene STATIC
+    Animation.cpp
     Instance.cpp
     Texture.cpp
     Material.cpp
