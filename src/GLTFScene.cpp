@@ -158,6 +158,22 @@ namespace Scene
 		scene.animations.reserve(model.animations_count);
 		for (size_t a = 0; a < model.animations_count; ++a)
 			scene.animations.emplace_back(model, model.animations[a]);
+		scene.cameras.clear();
+		scene.cameras.reserve(model.cameras_count);
+		for (size_t c = 0; c < model.cameras_count; ++c)
+		{
+			const tg3_camera &srcCamera = model.cameras[c];
+			Camera &camera = scene.cameras.emplace_back();
+			if (srcCamera.name.data)
+				camera.name.assign(srcCamera.name.data, srcCamera.name.len);
+			camera.perspective = srcCamera.type.data && std::string(srcCamera.type.data, srcCamera.type.len) == "perspective";
+			const tg3_perspective_camera &perspective = srcCamera.perspective;
+			camera.yFov = camera.perspective ? (float) perspective.yfov : 0.0f;
+			camera.aspectRatio = camera.perspective ? (float) perspective.aspect_ratio : 0.0f;
+			camera.zNear = (float) (camera.perspective ? perspective.znear : srcCamera.orthographic.znear);
+			camera.zFar = (float) (camera.perspective ? perspective.zfar : srcCamera.orthographic.zfar);
+		}
+
 		if (model.skins_count > 0)
 			fprintf(stderr, "%u skin(s) ignored: skinning is not supported, so skinned meshes stay in their bind pose\n",
 					model.skins_count);

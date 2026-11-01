@@ -20,6 +20,17 @@ namespace Scene
 		SCENE_LOAD_FAILED = 1024
 	};
 
+	// A glTF camera. An orthographic one keeps only its name and clip planes.
+	struct Camera
+	{
+		std::string name;
+		bool perspective;
+		float yFov; // radians
+		float aspectRatio; // 0 = the viewport's
+		float zNear;
+		float zFar; // 0 = infinite
+	};
+
 	class GLTFScene
 	{
 	public:
@@ -56,6 +67,14 @@ namespace Scene
 		size_t GetAnimationCount() const
 		{
 			return animations.size();
+		}
+		const Camera &GetCamera(size_t index) const
+		{
+			return cameras[index];
+		}
+		size_t GetCameraCount() const
+		{
+			return cameras.size();
 		}
 		size_t GetMeshCount() const
 		{
@@ -141,6 +160,7 @@ namespace Scene
 		std::vector<Instance> nodes;
 		std::vector<int32_t> parents; // per node
 		std::vector<Animation> animations;
+		std::vector<Camera> cameras;
 	};
 
 

@@ -80,6 +80,12 @@ namespace Scene
 			return meshIndex;
 		}
 
+		// The glTF camera this node carries (GLTFScene::GetCamera), or -1. It looks down the node's -Z, +Y up.
+		int32_t GetCameraIndex() const
+		{
+			return cameraIndex;
+		}
+
 		const float *GetWorldMatrix() const
 		{
 			return worldMatrix;
@@ -167,6 +173,7 @@ namespace Scene
 	private:
 		std::string name;
 		int32_t meshIndex;
+		int32_t cameraIndex;
 		bool hasMatrix;
 
 		float rotation[4];
