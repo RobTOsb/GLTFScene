@@ -86,6 +86,12 @@ namespace Scene
 			return cameraIndex;
 		}
 
+		// The KHR_lights_punctual light this node carries (GLTFScene::GetLight), or -1.
+		int32_t GetLightIndex() const
+		{
+			return lightIndex;
+		}
+
 		const float *GetWorldMatrix() const
 		{
 			return worldMatrix;
@@ -174,6 +180,7 @@ namespace Scene
 		std::string name;
 		int32_t meshIndex;
 		int32_t cameraIndex;
+		int32_t lightIndex;
 		bool hasMatrix;
 
 		float rotation[4];

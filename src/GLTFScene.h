@@ -31,6 +31,26 @@ namespace Scene
 		float zFar; // 0 = infinite
 	};
 
+	// A KHR_lights_punctual light. It sits at its node's origin and shines down the node's -Z (spot and
+	// directional), and the node's scale does not change it.
+	enum class PunctualLightType : uint32_t
+	{
+		Point,
+		Spot,
+		Directional
+	};
+
+	struct PunctualLight
+	{
+		std::string name;
+		PunctualLightType type;
+		float colour[3]; // linear
+		float intensity; // candela (point, spot) or lux (directional)
+		float range; // 0 = infinite
+		float innerConeAngle; // radians, spot only
+		float outerConeAngle;
+	};
+
 	class GLTFScene
 	{
 	public:
@@ -75,6 +95,14 @@ namespace Scene
 		size_t GetCameraCount() const
 		{
 			return cameras.size();
+		}
+		const PunctualLight &GetLight(size_t index) const
+		{
+			return lights[index];
+		}
+		size_t GetLightCount() const
+		{
+			return lights.size();
 		}
 		size_t GetMeshCount() const
 		{
@@ -161,6 +189,7 @@ namespace Scene
 		std::vector<int32_t> parents; // per node
 		std::vector<Animation> animations;
 		std::vector<Camera> cameras;
+		std::vector<PunctualLight> lights;
 	};
 
 

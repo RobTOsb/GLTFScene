@@ -174,6 +174,26 @@ namespace Scene
 			camera.zFar = (float) (camera.perspective ? perspective.zfar : srcCamera.orthographic.zfar);
 		}
 
+		scene.lights.clear();
+		scene.lights.reserve(model.lights_count);
+		for (size_t l = 0; l < model.lights_count; ++l)
+		{
+			const tg3_light &srcLight = model.lights[l];
+			PunctualLight &light = scene.lights.emplace_back();
+			if (srcLight.name.data)
+				light.name.assign(srcLight.name.data, srcLight.name.len);
+			const std::string type = srcLight.type.data ? std::string(srcLight.type.data, srcLight.type.len) : "";
+			light.type = type == "spot"			 ? PunctualLightType::Spot
+						 : type == "directional" ? PunctualLightType::Directional
+												 : PunctualLightType::Point;
+			for (int c = 0; c < 3; ++c)
+				light.colour[c] = (float) srcLight.color[c];
+			light.intensity = (float) srcLight.intensity;
+			light.range = (float) srcLight.range;
+			light.innerConeAngle = (float) srcLight.spot.inner_cone_angle;
+			light.outerConeAngle = (float) srcLight.spot.outer_cone_angle;
+		}
+
 		if (model.skins_count > 0)
 			fprintf(stderr, "%u skin(s) ignored: skinning is not supported, so skinned meshes stay in their bind pose\n",
 					model.skins_count);
