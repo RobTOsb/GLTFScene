@@ -179,6 +179,19 @@ namespace Scene
 			return attenuationDistance;
 		}
 
+		// The medium on the side the normals face, as GetAttenuationColour and GetAttenuationDistance are the
+		// one inside: white and infinite (none) unless pbrt's medium interface in the extras puts the
+		// KHR_materials_volume medium outside the surface only (PbrtMediumOutsideOnly), which then has none inside.
+		const float *GetExteriorAttenuationColour() const
+		{
+			return exteriorAttenuationColour;
+		}
+
+		float GetExteriorAttenuationDistance() const
+		{
+			return exteriorAttenuationDistance;
+		}
+
 		// Both sides are outside: light crosses without refracting or entering a medium. Set by the
 		// EXT_materials_thin_wall extension (our own, {"thinWalled": true} or just {}).
 		bool IsThinWalled() const
@@ -319,6 +332,8 @@ namespace Scene
 		float specularColour[3];
 		float attenuationColour[3];
 		float attenuationDistance;
+		float exteriorAttenuationColour[3];
+		float exteriorAttenuationDistance;
 		bool thinWalled;
 		float anisotropyStrength;
 		float anisotropyRotation;

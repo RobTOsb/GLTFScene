@@ -82,6 +82,20 @@ namespace Scene
 			}
 		}
 
+		bool PbrtMediumOutsideOnly(const tg3_material &material)
+		{
+			const tg3_value *pbrt = material.ext.extras ? ObjectMember(*material.ext.extras, "pbrt") : nullptr;
+			const tg3_value *mediumInterface = pbrt ? ObjectMember(*pbrt, "medium_interface") : nullptr;
+			if (!mediumInterface)
+				return false;
+			auto named = [&](const char *side)
+			{
+				const tg3_value *medium = ObjectMember(*mediumInterface, side);
+				return medium && medium->type == TG3_VALUE_STRING && medium->string_val.len > 0;
+			};
+			return named("outside") && !named("inside");
+		}
+
 		// The texture index of an extension's textureInfo member, -1 when absent.
 		int32_t ExtensionTexture(const tg3_material &material, const char *extension, const char *key)
 		{
@@ -235,6 +249,8 @@ namespace Scene
 		specularColour[0] = specularColour[1] = specularColour[2] = 1.0f;
 		attenuationColour[0] = attenuationColour[1] = attenuationColour[2] = 1.0f;
 		attenuationDistance = std::numeric_limits<float>::infinity();
+		exteriorAttenuationColour[0] = exteriorAttenuationColour[1] = exteriorAttenuationColour[2] = 1.0f;
+		exteriorAttenuationDistance = std::numeric_limits<float>::infinity();
 		thinWalled = false;
 		anisotropyStrength = 0.0f;
 		anisotropyRotation = 0.0f;
@@ -289,6 +305,18 @@ namespace Scene
 													  std::numeric_limits<double>::infinity());
 		if (!(attenuationDistance > 0.0f))
 			attenuationDistance = std::numeric_limits<float>::infinity();
+		exteriorAttenuationColour[0] = exteriorAttenuationColour[1] = exteriorAttenuationColour[2] = 1.0f;
+		exteriorAttenuationDistance = std::numeric_limits<float>::infinity();
+		if (PbrtMediumOutsideOnly(srcMaterial))
+		{
+			for (int c = 0; c < 3; ++c)
+			{
+				exteriorAttenuationColour[c] = attenuationColour[c];
+				attenuationColour[c] = 1.0f;
+			}
+			exteriorAttenuationDistance = attenuationDistance;
+			attenuationDistance = std::numeric_limits<float>::infinity();
+		}
 		// Present means thin-walled unless it says "thinWalled": false.
 		thinWalled = HasExtension(srcMaterial, "EXT_materials_thin_wall");
 		if (const tg3_value *flag = ExtensionValue(srcMaterial, "EXT_materials_thin_wall", "thinWalled");
